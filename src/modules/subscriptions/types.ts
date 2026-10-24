@@ -5,7 +5,6 @@ export const CATEGORIES = {
   streaming: 'Streaming',
   software: 'Apps e software',
   telecom: 'Internet e celular',
-  utilities: 'Casa (luz, água, gás)',
   insurance: 'Seguros',
   health: 'Saúde e academia',
   education: 'Educação',
@@ -13,6 +12,11 @@ export const CATEGORIES = {
 } as const
 
 export type Category = keyof typeof CATEGORIES
+
+/** Label for a stored category; categories since removed (e.g. utilities, now in Contas) show as "Outros". */
+export function categoryLabel(category: string): string {
+  return CATEGORIES[category as Category] ?? CATEGORIES.other
+}
 
 /** Billing cycles and how many months each one spans. */
 export const CYCLES = {

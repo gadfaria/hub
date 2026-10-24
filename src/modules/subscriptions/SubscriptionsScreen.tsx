@@ -35,7 +35,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { daysUntil, formatDate, formatMoney } from '@/lib/format'
 import { SubscriptionFormDialog } from './SubscriptionFormDialog'
-import { CATEGORIES, CYCLES, type Subscription } from './types'
+import { CYCLES, categoryLabel, type Subscription } from './types'
 import { useSubscriptions, type CategoryTotal, type SubscriptionRow } from './useSubscriptions'
 
 type Confirm = { kind: 'cancel' | 'delete'; subscription: Subscription }
@@ -260,7 +260,7 @@ function CategoriesCard({
               <li key={c.category} className="flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between gap-3 text-sm">
                   <span className="truncate">
-                    {CATEGORIES[c.category]}
+                    {categoryLabel(c.category)}
                     <span className="ml-1.5 text-xs text-muted-foreground">{c.count}</span>
                   </span>
                   <span className="shrink-0 font-medium tabular-nums">
@@ -377,7 +377,7 @@ function SubscriptionsTable({
                 <TableCell className="pl-4">
                   <div className="flex flex-col">
                     <span className="font-medium">{subscription.name}</span>
-                    <span className="text-xs text-muted-foreground">{CATEGORIES[subscription.category]}</span>
+                    <span className="text-xs text-muted-foreground">{categoryLabel(subscription.category)}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">

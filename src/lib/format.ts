@@ -66,6 +66,30 @@ export function addMonths(isoDate: string, months: number): string {
   return toIsoDate(target)
 }
 
+/** Current month as YYYY-MM. */
+export function currentMonth(): string {
+  return today().slice(0, 7)
+}
+
+/** Shifts a YYYY-MM month by n months. */
+export function shiftMonth(month: string, n: number): string {
+  return addMonths(`${month}-01`, n).slice(0, 7)
+}
+
+/** "2026-10" → "outubro de 2026"; short: "out/26" */
+export function formatMonth(month: string, short = false): string {
+  const date = parseDate(`${month}-01`)
+  if (!short) return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  return `${date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}/${month.slice(2, 4)}`
+}
+
+/** Day `day` of a YYYY-MM month, clamped to the month's last day (31 in February → 28/29). */
+export function dayOfMonth(month: string, day: number): string {
+  const [year, m] = month.split('-').map(Number)
+  const lastDay = new Date(year, m, 0).getDate()
+  return `${month}-${String(Math.min(Math.max(1, day), lastDay)).padStart(2, '0')}`
+}
+
 /** Whole days from today until `isoDate` (negative when it is in the past). */
 export function daysUntil(isoDate: string): number {
   const now = new Date()

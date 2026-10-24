@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Bills** module for monthly bills with varying amounts: name, category, due day (clamped to short months), payment method, estimate, first/last month and notes. Each month gets an entry with the real amount, due date, payment date, notes and attached boleto/statement.
+- Month view with a month selector, totals (month, paid, to pay, next due), a paid / pending / overdue status per bill, "Marcar como paga", undo, and a per-bill history dialog with a 12-month bar chart, average and highest amount. Bills can be ended (kept as history) or deleted.
 - Car insurance inside each vehicle: insurer, policy number, broker, coverage period, premium and installments, deductible, coverages, 24h assistance phone (tap to call), notes and attached files. A renewal reminder shows two months before the end, "Renovar" prefills the next policy, and past policies stay listed as history.
 - Backup: a sidebar entry opens a dialog that copies every collection file into `backup-db-vault/<YYYY-MM-DD HHhMM>/` on Drive (server-side copy), lists recent backups with links, and downloads a single JSON export of all data.
 - Restore from a Drive backup or a downloaded `.json` export. It overwrites the modules present in the backup, takes an automatic backup of the current state first, and reloads the app.
@@ -20,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - This changelog.
 
 ### Changed
+- Subscriptions no longer offer the "Casa (luz, água, gás)" category; those bills belong in Contas. Existing entries with it show as "Outros".
 - README rewritten in English, with the Google Cloud setup matching the current configuration (Testing mode with test users).
 - Shared `Field` form component moved to `src/components/form-field.tsx`.
 - Expiry status and badge shared in `src/lib/expiry.ts` and `src/components/expiry-badge.tsx`; pending-upload file list shared as `PendingFileList`.

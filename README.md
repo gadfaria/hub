@@ -1,6 +1,6 @@
 # Vault
 
-A personal vault organized into modules (Finance, Subscriptions, Vehicles, Documents, Health, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
+A personal vault organized into modules (Finance, Bills, Subscriptions, Vehicles, Documents, Health, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
 
 Live at <https://vault.gadfaria.com>.
 
@@ -15,6 +15,7 @@ Live at <https://vault.gadfaria.com>.
 Modules are fixed and defined in code. Currently:
 
 - **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time.
+- **Bills** — monthly bills with varying amounts (rent, condo, electricity, water, gas, credit card statement, taxes…): due day, payment method and an estimate per bill, then each month's real amount, payment date and boleto/statement file. A month selector shows what's paid, pending or overdue, and each bill has a 12-month chart and average.
 - **Subscriptions** — recurring charges (streaming, internet, insurance, gym, utilities…) with amount, billing cycle (monthly, quarterly, semiannual, yearly), first charge date and payment method. Shows the next charge of each one, monthly and yearly totals, a breakdown by category, and keeps cancelled ones for history.
 - **Vehicles** — vehicle registry (plate, renavam, chassis…) and maintenance history: services, repairs and part replacements, with odometer, workshop, labor and parts. The current odometer is the highest reading recorded, from a service or a standalone reading. Each vehicle also keeps its insurance policies (insurer, policy number, period, premium and installments, deductible, coverages, 24h assistance phone, PDF), with a renewal reminder two months before the end and past policies kept as history.
 - **Documents** — ID cards, driver's license, passport, certificates, insurance… per person, with number, issuer, issue and expiry dates, and photos/PDFs stored in the Drive `attachments/` folder. Expired documents and those expiring within 90 days are highlighted.
@@ -34,6 +35,7 @@ Code, file names, routes and stored values are in English; UI text is in Brazili
 db-vault/
   data/
     finance.json    ← one file per module
+    bills.json
     subscriptions.json
     vehicles.json
     documents.json
