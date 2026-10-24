@@ -2,9 +2,12 @@ import { useCallback, useMemo } from 'react'
 import { newSyncable, touch } from '@/domain/merge'
 import { useCollection } from '@/storage/useCollection'
 import { today } from '@/lib/format'
-import type { Account, AccountType, BalanceEntry, FinanceData } from './types'
+import type { Syncable } from '@/domain/types'
+import type { Account, AccountType, BalanceEntry, FinanceData, Investment } from './types'
 
-const EMPTY: FinanceData = { accounts: [], balances: [] }
+const EMPTY: FinanceData = { accounts: [], balances: [], investments: [] }
+
+export type InvestmentInput = Omit<Investment, keyof Syncable | 'redeemedAt' | 'redeemedAmount'>
 
 export interface AccountSummary {
   account: Account
@@ -47,6 +50,18 @@ function buildSeries(accounts: Account[], history: Map<string, BalanceEntry[]>):
   const last = series.at(-1)
   if (last && last.date < today()) series.push({ date: today(), total: last.total })
   return series
+}
+
+/** Active investments by maturity (no-maturity ones last), redeemed ones newest first. */
+function splitInvestments(all: Investment[]) {
+  const live = all.filter((i) => !i.deleted)
+  return {
+    activeInvestments: live
+      .filter((i) => !i.redeemedAt)
+      .sort((a, b) => (a.maturity || '9999').localeCompare(b.maturity || '9999') || a.name.localeCompare(b.name)),
+    redeemedInvestments: live.filter((i) => i.redeemedAt).sort((a, b) => b.redeemedAt.localeCompare(a.redeemedAt)),
+    investmentInstitutions: [...new Set(live.map((i) => i.institution.trim()).filter(Boolean))].sort(),
+  }
 }
 
 /** Net worth on a given day (the last point on or before it), or undefined before the first record. */
@@ -95,6 +110,7 @@ export function useFinance() {
       institutions: sortedGroups.map((g) => g.institution),
       history,
       series: buildSeries(accounts, history),
+      ...splitInvestments(data?.investments ?? []),
     }
   }, [data])
 
@@ -133,5 +149,37 @@ export function useFinance() {
     [save, derived.history],
   )
 
-  return { loading, ...derived, addAccount, updateAccount, addBalance, deleteBalance, deleteAccount }
+  const saveInvestment = useCallback(
+    (input: InvestmentInput, existing?: Investment) =>
+      save({
+        investments: [
+          existing ? touch(existing, input) : { ...newSyncable(), ...input, redeemedAt: '', redeemedAmount: 0 },
+        ],
+      }),
+    [save],
+  )
+
+  const redeemInvestment = useCallback(
+    (investment: Investment, redeemedAt: string, redeemedAmount: number) =>
+      save({ investments: [touch(investment, { redeemedAt, redeemedAmount })] }),
+    [save],
+  )
+
+  const deleteInvestment = useCallback(
+    (investment: Investment) => save({ investments: [touch(investment, { deleted: true })] }),
+    [save],
+  )
+
+  return {
+    loading,
+    ...derived,
+    addAccount,
+    updateAccount,
+    addBalance,
+    deleteBalance,
+    deleteAccount,
+    saveInvestment,
+    redeemInvestment,
+    deleteInvestment,
+  }
 }

@@ -1,9 +1,10 @@
 import type { LucideIcon } from 'lucide-react'
-import { CarIcon, HeartPulseIcon, IdCardIcon, LandmarkIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
+import { CarIcon, HeartPulseIcon, IdCardIcon, LandmarkIcon, PiggyBankIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
 import { daysUntil, formatDate, formatMoney } from '@/lib/format'
 import type { MonthRow } from '@/modules/bills/useBills'
 import { documentLabel } from '@/modules/documents/types'
 import type { DocumentRow } from '@/modules/documents/useDocuments'
+import type { Investment } from '@/modules/finance/types'
 import { ENTRY_KINDS, type HealthEntry } from '@/modules/health/types'
 import type { SubscriptionRow } from '@/modules/subscriptions/useSubscriptions'
 import { policyStatus, vehicleLabel } from '@/modules/vehicles/types'
@@ -39,6 +40,8 @@ export interface EventSources {
   health: { person: string; upcoming: HealthEntry[] }[]
   vehicles: VehicleSummary[]
   balancesUpdatedAt: string | undefined
+  /** Active (not redeemed) investments */
+  investments: Investment[]
 }
 
 export function collectEvents(sources: EventSources): HomeEvent[] {
@@ -126,6 +129,23 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
         attention: days <= SOON_DAYS,
       })
     }
+  }
+
+  for (const investment of sources.investments) {
+    if (!investment.maturity) continue
+    const days = daysUntil(investment.maturity)
+    if (days > AGENDA_DAYS) continue
+    events.push({
+      id: `investment-${investment.id}`,
+      icon: PiggyBankIcon,
+      severity: days <= SOON_DAYS ? 'warning' : 'info',
+      date: investment.maturity,
+      title: days < 0 ? `Registre o resgate: ${investment.name}` : `Vence aplicação: ${investment.name}`,
+      detail: `${investment.institution} · ${formatMoney(investment.amount)} · ${days < 0 ? 'venceu' : 'vence'} em ${formatDate(investment.maturity)}`,
+      meta: formatMoney(investment.amount),
+      href: '#/finance',
+      attention: days <= SOON_DAYS,
+    })
   }
 
   if (sources.balancesUpdatedAt && daysUntil(sources.balancesUpdatedAt) < -STALE_BALANCE_DAYS) {

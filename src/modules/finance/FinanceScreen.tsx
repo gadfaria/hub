@@ -14,9 +14,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AccountDetailDialog } from './AccountDetailDialog'
 import { AccountFormDialog, type AccountFormValues } from './AccountFormDialog'
 import { AccountsTable } from './AccountsTable'
+import { InvestmentsPanel } from './InvestmentsPanel'
 import { NetWorthChart } from './NetWorthChart'
 import { SummaryCards } from './SummaryCards'
 import { accountLabel, type Account } from './types'
@@ -26,6 +28,8 @@ export function FinanceScreen() {
   const finance = useFinance()
   const { loading, groups, total, lastUpdate, institutions, history, series } = finance
   const [creating, setCreating] = useState(false)
+  const [creatingInvestment, setCreatingInvestment] = useState(false)
+  const [tab, setTab] = useState<'accounts' | 'active' | 'redeemed'>('accounts')
   const [editing, setEditing] = useState<Account | null>(null)
   const [deleting, setDeleting] = useState<Account | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -53,28 +57,57 @@ export function FinanceScreen() {
           <NetWorthChart loading={loading} series={series} />
         </div>
         <div className="flex flex-col gap-4 px-4 lg:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-medium">Contas</h2>
-              {!loading && (
-                <Badge variant="secondary" className="tabular-nums">
-                  {accountCount}
-                </Badge>
-              )}
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setCreating(true)} disabled={loading}>
-              <PlusIcon />
-              Nova conta
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+              <TabsList>
+                <TabsTrigger value="accounts">
+                  Contas
+                  {!loading && (
+                    <Badge variant="secondary" className="tabular-nums">
+                      {accountCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="active">
+                  Investimentos
+                  {!loading && (
+                    <Badge variant="secondary" className="tabular-nums">
+                      {finance.activeInvestments.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="redeemed">Resgatados</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {tab === 'accounts' ? (
+              <Button variant="outline" size="sm" onClick={() => setCreating(true)} disabled={loading}>
+                <PlusIcon />
+                Nova conta
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setCreatingInvestment(true)} disabled={loading}>
+                <PlusIcon />
+                Nova aplicação
+              </Button>
+            )}
           </div>
-          <AccountsTable
-            loading={loading}
-            groups={groups}
-            total={total}
-            onOpen={(account) => setSelectedId(account.id)}
-            onEdit={setEditing}
-            onDelete={setDeleting}
-          />
+          {tab === 'accounts' ? (
+            <AccountsTable
+              loading={loading}
+              groups={groups}
+              total={total}
+              onOpen={(account) => setSelectedId(account.id)}
+              onEdit={setEditing}
+              onDelete={setDeleting}
+            />
+          ) : (
+            <InvestmentsPanel
+              finance={finance}
+              view={tab}
+              creating={creatingInvestment}
+              onCreatingChange={setCreatingInvestment}
+            />
+          )}
         </div>
       </PageBody>
 

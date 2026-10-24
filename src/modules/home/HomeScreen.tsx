@@ -52,6 +52,7 @@ export function HomeScreen() {
         health: health.people.map((person) => ({ person, upcoming: health.forPerson(person).upcoming })),
         vehicles: vehicles.summaries,
         balancesUpdatedAt: finance.lastUpdate,
+        investments: finance.activeInvestments,
       })
 
   const attention = events.filter((e) => e.attention).sort(byUrgency)
