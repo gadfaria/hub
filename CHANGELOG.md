@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- App icon (white vault on black), favicon and a web app manifest, so "Adicionar à Tela de Início" on iOS/Android creates a "Vault" shortcut with its own icon. It opens in the regular browser (not standalone) to keep the Google sign-in popup reliable.
 - Global search (⌘K / Ctrl+K, a "Buscar" button in the sidebar and a header button on phones) across every module: documents with their number, accounts, investments, bills, subscriptions, vehicles, services (including part names), insurance policies and health records. Accent- and case-insensitive, all words must match; picking a document opens it directly (`#/documents/<id>`).
 - Investments inside Finance: applications (CDB, LCI, LCA, Tesouro, funds, stocks, crypto…) with institution, amount, rate, investment date and maturity; "Investimentos" and "Resgatados" tabs; a summary of the active amount, what matures within 30 days and the realized return; and a redemption dialog that shows the return in money, for the period and annualized. They don't add to net worth, since balances already include them.
 - Investment maturities on the Início page: in the agenda within 30 days, and in "Precisa de atenção" within a week or once matured without a redemption.
@@ -24,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Owner tabs to filter documents by person, and one-click copy of the document number.
 - File attachments stored in the Drive `attachments/` folder: upload (images and PDFs, up to 20 MB), thumbnails, open in a new tab, and removal to the Drive trash. Reusable by any module through `useAttachments`, `AttachmentGrid` and `AttachmentPicker`.
 - This changelog.
+
+### Removed
+- Unused Vite template assets (`icons.svg`, Vite favicon).
 
 ### Changed
 - Subscriptions no longer offer the "Casa (luz, água, gás)" category; those bills belong in Contas. Existing entries with it show as "Outros".

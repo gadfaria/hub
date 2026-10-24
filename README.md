@@ -106,6 +106,10 @@ npm run dev
 
 The dev server runs on port 5180 (fixed, since it must match the OAuth origins).
 
+## On your phone
+
+Open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Adicionar à tela inicial** (Android, Chrome). The shortcut gets the Vault icon and name and opens in the browser. It is not a PWA (no offline cache, no standalone mode).
+
 ## Deploy
 
 Static site (`npm run build` → `dist/`), deployed on Vercel. Set `VITE_GOOGLE_CLIENT_ID` as a **Config** (non-secret) environment variable and redeploy: Vite inlines it at build time. Add the production URL to the OAuth client's authorized origins.
