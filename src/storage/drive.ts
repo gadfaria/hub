@@ -1,0 +1,116 @@
+const API = 'https://www.googleapis.com/drive/v3'
+const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
+
+export const FOLDER_MIME = 'application/vnd.google-apps.folder'
+
+export class DriveError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'DriveError'
+    this.status = status
+  }
+}
+
+export interface DriveFile {
+  id: string
+  name: string
+  mimeType: string
+  appProperties?: Record<string, string>
+}
+
+interface FileMetadata {
+  name: string
+  mimeType?: string
+  parents?: string[]
+  appProperties?: Record<string, string>
+}
+
+const FILE_FIELDS = 'id,name,mimeType,appProperties'
+
+/** Thin wrapper over the Drive v3 REST API. Only sees files this app created (drive.file scope). */
+export class DriveClient {
+  private readonly getToken: () => Promise<string>
+
+  constructor(getToken: () => Promise<string>) {
+    this.getToken = getToken
+  }
+
+  private async request(url: string, init: RequestInit = {}): Promise<Response> {
+    const token = await this.getToken()
+    const headers = new Headers(init.headers)
+    headers.set('Authorization', `Bearer ${token}`)
+    const res = await fetch(url, { ...init, headers })
+    if (!res.ok) throw new DriveError(res.status, await res.text())
+    return res
+  }
+
+  async list(q: string): Promise<DriveFile[]> {
+    const params = new URLSearchParams({
+      q: `${q} and trashed = false`,
+      fields: `files(${FILE_FIELDS})`,
+      orderBy: 'createdTime',
+      pageSize: '1000',
+      spaces: 'drive',
+    })
+    const res = await this.request(`${API}/files?${params}`)
+    const body = (await res.json()) as { files: DriveFile[] }
+    return body.files
+  }
+
+  async createFolder(name: string, parentId?: string, appProperties?: Record<string, string>): Promise<DriveFile> {
+    const metadata: FileMetadata = {
+      name,
+      mimeType: FOLDER_MIME,
+      parents: parentId ? [parentId] : undefined,
+      appProperties,
+    }
+    const res = await this.request(`${API}/files?fields=${FILE_FIELDS}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metadata),
+    })
+    return res.json()
+  }
+
+  async createJson(
+    name: string,
+    parentId: string,
+    data: unknown,
+    appProperties?: Record<string, string>,
+  ): Promise<DriveFile> {
+    const metadata: FileMetadata = { name, mimeType: 'application/json', parents: [parentId], appProperties }
+    const boundary = `vault-${crypto.randomUUID()}`
+    const body = [
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(metadata),
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(data),
+      `--${boundary}--`,
+    ].join('\r\n')
+    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS}`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    })
+    return res.json()
+  }
+
+  async readJson<T>(fileId: string): Promise<T> {
+    const res = await this.request(`${API}/files/${fileId}?alt=media`)
+    return res.json()
+  }
+
+  async updateJson(fileId: string, data: unknown): Promise<void> {
+    await this.request(`${UPLOAD}/files/${fileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify(data),
+    })
+  }
+}
