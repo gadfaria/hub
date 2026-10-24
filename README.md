@@ -1,77 +1,87 @@
 # Vault
 
-Um "cofre" pessoal, organizado em módulos (Finanças, …), com os dados guardados como JSON numa pasta do seu Google Drive. Sem backend — o app roda no navegador e conversa direto com a API do Drive.
+A personal vault organized into modules (Finance, Vehicles, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
+
+Live at <https://vault.gadfaria.com>.
 
 ## Stack
 
 - React + Vite + TypeScript
-- Tailwind CSS v4 + shadcn/ui (layout baseado no bloco `dashboard-01`), gráficos com Recharts
-- Google Identity Services (login) + Drive API v3 (armazenamento), escopo `drive.file`
+- Tailwind CSS v4 + shadcn/ui (layout based on the `dashboard-01` block), charts with Recharts
+- Google Identity Services (sign-in) + Drive API v3 (storage), `drive.file` scope
 
-## Módulos
+## Modules
 
-Os módulos são fixos e definidos no código. Hoje:
+Modules are fixed and defined in code. Currently:
 
-- **Finanças** — contas por instituição (banco, corretora, cripto…), cada uma com um histórico de saldos. O patrimônio total é a soma do saldo mais recente de cada conta; o gráfico mostra a evolução ao longo do tempo.
-- **Veículos** — cadastro de veículos (placa, renavam, chassi…) e histórico de manutenção: revisões, reparos e trocas de peças, com km, oficina, mão de obra e peças. O km atual é o maior registrado (em manutenções ou leituras avulsas do hodômetro).
+- **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time.
+- **Vehicles** — vehicle registry (plate, renavam, chassis…) and maintenance history: services, repairs and part replacements, with odometer, workshop, labor and parts. The current odometer is the highest reading recorded, from a service or a standalone reading.
 
-Para criar um módulo novo:
+To add a module:
 
-1. Crie `src/modules/<id>/` com um `index.ts` exportando um `VaultModule` (`id`, `name`, `icon`, `Screen`).
-2. Registre em `src/modules/index.ts`. Ele aparece na sidebar e em `#/<id>`; sub-rotas (`#/<id>/...`) chegam na tela via prop `path`.
-3. Na tela, use `useCollection('<id>', EMPTY)` para ler e gravar `data/<id>.json`. `EMPTY` define as listas do módulo (ex.: `{ accounts: [], balances: [] }`); listas novas adicionadas depois não precisam de migração.
+1. Create `src/modules/<id>/` with an `index.ts` exporting a `VaultModule` (`id`, `name`, `icon`, `Screen`).
+2. Register it in `src/modules/index.ts`. It shows up in the sidebar and at `#/<id>`; sub-routes (`#/<id>/...`) reach the screen through the `path` prop.
+3. In the screen, call `useCollection('<id>', EMPTY)` to read and write `data/<id>.json`. `EMPTY` defines the module's lists (e.g. `{ accounts: [], balances: [] }`); lists added later need no migration.
 
-## Estrutura no Drive
+Code, file names, routes and stored values are in English; UI text is in Brazilian Portuguese.
+
+## Drive layout
 
 ```
 db-vault/
   data/
-    finance.json    ← um arquivo por módulo
+    finance.json    ← one file per module
     vehicles.json
-  attachments/      ← arquivos (PDF, imagens) — reservado para módulos futuros
+  attachments/      ← files (PDFs, images), reserved for future modules
 ```
 
-Cada arquivo é marcado com `appProperties.vault` (`root`, `data`, `attachments`, `collection`), então o app encontra tudo por query, não por nome. Com o escopo `drive.file` o app só enxerga arquivos que ele mesmo criou.
+Every file is tagged with `appProperties.vault` (`root`, `data`, `attachments`, `collection`), so the app finds them by query rather than by name: renaming or moving the folder doesn't break anything. With the `drive.file` scope the app only sees files it created itself.
 
-Toda escrita faz **ler → mesclar → gravar**: cada item tem `id`, `updatedAt` e `deleted`, e no merge vence o `updatedAt` mais recente. Assim, editar em dois dispositivos não sobrescreve nada. Valores em dinheiro são guardados em centavos (inteiros).
+Every write is **read → merge → write**: each item has an `id`, `updatedAt` and `deleted` flag, and the most recent `updatedAt` wins. Editing from two devices never overwrites the other's changes. Money is stored in cents (integers).
 
-## Código
+## Code
 
 ```
 src/
-  auth/            login Google (token de 1h), contexto de sessão
-  domain/          tipos base (Syncable) e merge
-  storage/         DriveClient (REST), Vault (layout no Drive), VaultProvider, useCollection
-  modules/         um diretório por módulo + registro (index.ts)
-  components/      layout do dashboard (sidebar, header) e componentes shadcn em ui/
-  screens/         tela de login
+  auth/            Google sign-in (1h access token), session context
+  domain/          base types (Syncable) and merge
+  storage/         DriveClient (REST), Vault (Drive layout), VaultProvider, useCollection
+  modules/         one folder per module + registry (index.ts)
+  components/      dashboard layout (sidebar, header) and shadcn components in ui/
+  lib/             shared helpers (formatting money, dates, km)
+  screens/         sign-in screen
 ```
 
-## Configurar o Google Cloud (uma vez)
+## Google Cloud setup (once)
 
-1. Acesse <https://console.cloud.google.com/> e crie um projeto (ex.: `vault`).
-2. **APIs e serviços → Biblioteca** → ative a **Google Drive API**.
-3. **Google Auth Platform → Branding**: preencha nome do app e e-mail de suporte.
-4. **Público-alvo**: tipo **Externo**. Clique em **Publicar app** (passa para "Em produção").
-   - Com `drive.file` + `openid/email/profile` (escopos não sensíveis) não há revisão do Google.
-5. **Acesso a dados**: adicione os escopos `.../auth/drive.file`, `openid`, `email`, `profile`.
-6. **Clientes → Criar cliente** → tipo **Aplicativo da Web**:
-   - **Origens JavaScript autorizadas**: `http://localhost:5180` e, depois, a URL de produção.
-   - Não precisa de URI de redirecionamento.
-7. Copie o **Client ID** e crie o arquivo `.env.local`:
+1. Go to <https://console.cloud.google.com/> and create a project (e.g. `vault`).
+2. **APIs & Services → Library** → enable the **Google Drive API**.
+3. **Google Auth Platform → Get started**: app name, support email, audience **External**, contact email.
+4. **Audience → Test users**: add the Google accounts allowed to sign in.
+   - The app stays in **Testing** mode, so Google itself blocks any account that isn't on this list.
+   - Publishing to production would let any Google account sign in (each one only sees its own Drive). It also requires a home page and privacy policy on a verified domain.
+5. **Clients → Create client** → type **Web application**:
+   - **Authorized JavaScript origins**: `http://localhost:5180` and the production URL.
+   - No redirect URIs needed. The client secret is not used.
+6. Copy the **Client ID** into `.env.local`:
 
    ```
    VITE_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
    ```
 
-## Rodar
+The Client ID is public by design (it ships in the browser bundle); it grants nothing on its own.
+
+## Running locally
 
 ```bash
 npm install
 npm run dev
 ```
 
+The dev server runs on port 5180 (fixed, since it must match the OAuth origins).
+
 ## Deploy
 
-Site estático (`npm run build` → `dist/`). Vercel ou Cloudflare Pages funcionam direto; lembre de definir `VITE_GOOGLE_CLIENT_ID` nas variáveis de ambiente e adicionar a URL nas origens autorizadas do cliente OAuth.
-# hub
+Static site (`npm run build` → `dist/`), deployed on Vercel. Set `VITE_GOOGLE_CLIENT_ID` as a **Config** (non-secret) environment variable and redeploy: Vite inlines it at build time. Add the production URL to the OAuth client's authorized origins.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
