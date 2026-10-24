@@ -57,6 +57,15 @@ export function endOfPreviousMonth(): string {
   return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 0))
 }
 
+/** Adds months to a YYYY-MM-DD date, clamping to the month's last day (Jan 31 + 1 → Feb 28). */
+export function addMonths(isoDate: string, months: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const target = new Date(year, month - 1 + months, 1)
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(day, lastDay))
+  return toIsoDate(target)
+}
+
 /** Whole days from today until `isoDate` (negative when it is in the past). */
 export function daysUntil(isoDate: string): number {
   const now = new Date()

@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
+import { subscriptions } from './subscriptions'
 import { vehicles } from './vehicles'
 
 export interface ModuleScreenProps {
@@ -19,4 +20,4 @@ export interface VaultModule {
 }
 
 /** Every area of the vault, in sidebar order. To add one, create src/modules/<id>/ and register it here. */
-export const MODULES: VaultModule[] = [finance, vehicles, documents, health]
+export const MODULES: VaultModule[] = [finance, subscriptions, vehicles, documents, health]
