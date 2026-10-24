@@ -4,6 +4,7 @@ import { bills } from './bills'
 import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
+import { home } from './home'
 import { subscriptions } from './subscriptions'
 import { vehicles } from './vehicles'
 
@@ -20,5 +21,8 @@ export interface VaultModule {
   Screen: ComponentType<ModuleScreenProps>
 }
 
-/** Every area of the vault, in sidebar order. To add one, create src/modules/<id>/ and register it here. */
-export const MODULES: VaultModule[] = [finance, bills, subscriptions, vehicles, documents, health]
+/**
+ * Every area of the vault, in sidebar order; the first one is the landing page.
+ * To add one, create src/modules/<id>/ and register it here.
+ */
+export const MODULES: VaultModule[] = [home, finance, bills, subscriptions, vehicles, documents, health]

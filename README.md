@@ -14,6 +14,7 @@ Live at <https://vault.gadfaria.com>.
 
 Modules are fixed and defined in code. Currently:
 
+- **Início** — the landing page. Greets you, sums up net worth, fixed monthly spending (bills + subscriptions) and what's left to pay this month, lists what needs attention across every module (overdue bills, expired or expiring documents, insurance to renew, upcoming follow-ups, stale balances) and an agenda of the next 30 days.
 - **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time.
 - **Bills** — monthly bills with varying amounts (rent, condo, electricity, water, gas, credit card statement, taxes…): due day, payment method and an estimate per bill, then each month's real amount, payment date and boleto/statement file. A month selector shows what's paid, pending or overdue, and each bill has a 12-month chart and average.
 - **Subscriptions** — recurring charges (streaming, internet, insurance, gym, utilities…) with amount, billing cycle (monthly, quarterly, semiannual, yearly), first charge date and payment method. Shows the next charge of each one, monthly and yearly totals, a breakdown by category, and keeps cancelled ones for history.

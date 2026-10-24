@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Início** landing page: greeting, net worth, fixed monthly spending, amount left to pay this month, a "Precisa de atenção" list gathered from every module (overdue and soon-due bills, expired or expiring documents, insurance to renew, health follow-ups within a week, balances not updated for 30 days) and a 30-day agenda including subscription charges. Each item links to its module.
 - **Bills** module for monthly bills with varying amounts: name, category, due day (clamped to short months), payment method, estimate, first/last month and notes. Each month gets an entry with the real amount, due date, payment date, notes and attached boleto/statement.
 - Month view with a month selector, totals (month, paid, to pay, next due), a paid / pending / overdue status per bill, "Marcar como paga", undo, and a per-bill history dialog with a 12-month bar chart, average and highest amount. Bills can be ended (kept as history) or deleted.
 - Car insurance inside each vehicle: insurer, policy number, broker, coverage period, premium and installments, deductible, coverages, 24h assistance phone (tap to call), notes and attached files. A renewal reminder shows two months before the end, "Renovar" prefills the next policy, and past policies stay listed as history.
