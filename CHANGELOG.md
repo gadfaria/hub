@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Global search (⌘K / Ctrl+K, a "Buscar" button in the sidebar and a header button on phones) across every module: documents with their number, accounts, investments, bills, subscriptions, vehicles, services (including part names), insurance policies and health records. Accent- and case-insensitive, all words must match; picking a document opens it directly (`#/documents/<id>`).
 - Investments inside Finance: applications (CDB, LCI, LCA, Tesouro, funds, stocks, crypto…) with institution, amount, rate, investment date and maturity; "Investimentos" and "Resgatados" tabs; a summary of the active amount, what matures within 30 days and the realized return; and a redemption dialog that shows the return in money, for the period and annualized. They don't add to net worth, since balances already include them.
 - Investment maturities on the Início page: in the agenda within 30 days, and in "Precisa de atenção" within a week or once matured without a redemption.
 - **Início** landing page: greeting, net worth, fixed monthly spending, amount left to pay this month, a "Precisa de atenção" list gathered from every module (overdue and soon-due bills, expired or expiring documents, insurance to renew, health follow-ups within a week, balances not updated for 30 days) and a 30-day agenda including subscription charges. Each item links to its module.

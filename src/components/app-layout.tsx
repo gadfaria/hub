@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar"
+import { SearchProvider } from "@/components/search/search-provider"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 export function AppLayout({ activeId, children }: { activeId: string; children: React.ReactNode }) {
@@ -11,8 +12,10 @@ export function AppLayout({ activeId, children }: { activeId: string; children: 
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" activeId={activeId} />
-      <SidebarInset>{children}</SidebarInset>
+      <SearchProvider>
+        <AppSidebar variant="inset" activeId={activeId} />
+        <SidebarInset>{children}</SidebarInset>
+      </SearchProvider>
     </SidebarProvider>
   )
 }

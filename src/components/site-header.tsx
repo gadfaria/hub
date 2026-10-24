@@ -1,5 +1,7 @@
 import { Fragment } from "react"
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon, SearchIcon } from "lucide-react"
+import { useSearch } from "@/components/search/context"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -11,6 +13,7 @@ export interface Crumb {
 /** `title` is either the page name or a breadcrumb trail (the last crumb is the current page). */
 export function SiteHeader({ title, children }: { title: string | Crumb[]; children?: React.ReactNode }) {
   const crumbs = typeof title === "string" ? [{ label: title }] : title
+  const search = useSearch()
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -34,7 +37,13 @@ export function SiteHeader({ title, children }: { title: string | Crumb[]; child
             </Fragment>
           ))}
         </h1>
-        {children && <div className="ml-auto flex shrink-0 items-center gap-2">{children}</div>}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* On phones the sidebar (and its search button) is hidden, so search lives in the header. */}
+          <Button variant="ghost" size="icon" className="size-8 md:hidden" onClick={() => search.setOpen(true)} aria-label="Buscar">
+            <SearchIcon />
+          </Button>
+          {children}
+        </div>
       </div>
     </header>
   )

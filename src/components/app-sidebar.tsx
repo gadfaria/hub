@@ -1,9 +1,10 @@
 import * as React from "react"
-import { DatabaseBackupIcon, VaultIcon } from "lucide-react"
+import { DatabaseBackupIcon, SearchIcon, VaultIcon } from "lucide-react"
 
 import { BackupDialog } from "@/components/backup-dialog"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { useSearch } from "@/components/search/context"
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +21,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { activeId: string }) {
   const [backupOpen, setBackupOpen] = React.useState(false)
+  const search = useSearch()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -39,6 +41,19 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarMenu className="px-2 pt-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Buscar"
+              onClick={() => search.setOpen(true)}
+              className="border bg-background text-muted-foreground shadow-xs hover:text-foreground"
+            >
+              <SearchIcon />
+              <span>Buscar</span>
+              <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-[10px]">⌘K</kbd>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavMain
           items={MODULES.map((m) => ({
             title: m.name,

@@ -28,6 +28,8 @@ To add a module:
 2. Register it in `src/modules/index.ts`. It shows up in the sidebar and at `#/<id>`; sub-routes (`#/<id>/...`) reach the screen through the `path` prop.
 3. In the screen, call `useCollection('<id>', EMPTY)` to read and write `data/<id>.json`. `EMPTY` defines the module's lists (e.g. `{ accounts: [], balances: [] }`); lists added later need no migration. For files, `useAttachments('<id>')` uploads to and trashes from `attachments/`, and `<AttachmentGrid>` / `<AttachmentPicker>` render them.
 
+**Search** — ⌘K / Ctrl+K (or "Buscar" in the sidebar, the magnifier in the header on phones) searches every module at once: documents (showing their number), accounts, investments, bills, subscriptions, vehicles and their services and insurance (plate, chassis, policy number, part names), and health records. Matching ignores case and accents, and every typed word must match.
+
 Code, file names, routes and stored values are in English; UI text is in Brazilian Portuguese.
 
 ## Drive layout

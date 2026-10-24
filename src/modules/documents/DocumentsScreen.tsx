@@ -31,18 +31,26 @@ import { DocumentDetailDialog } from './DocumentDetailDialog'
 import { DocumentFormDialog } from './DocumentFormDialog'
 import { ExpiryBadge } from '@/components/expiry-badge'
 import { DOCUMENT_TYPES, EXPIRING_SOON_DAYS, documentLabel, type PersonalDocument } from './types'
+import type { ModuleScreenProps } from '..'
 import { useDocuments, type DocumentRow } from './useDocuments'
 
 const ALL = '__all__'
 
-export function DocumentsScreen() {
+export function DocumentsScreen({ path }: ModuleScreenProps) {
   const docs = useDocuments()
   const { session } = useAuth()
   const [owner, setOwner] = useState(ALL)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PersonalDocument | null>(null)
   const [deleting, setDeleting] = useState<PersonalDocument | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // A document can be opened by URL (#/documents/<id>, e.g. from the global search) or by clicking it.
+  const [clickedId, setClickedId] = useState<string | null>(null)
+  const routeId = path[0] ?? null
+  const selectedId = clickedId ?? routeId
+  const setSelectedId = (id: string | null) => {
+    setClickedId(id)
+    if (id === null && routeId) window.location.assign('#/documents')
+  }
 
   const visible = owner === ALL ? docs.rows : docs.rows.filter((r) => r.document.owner.trim() === owner)
   const selected = docs.rows.find((r) => r.document.id === selectedId)?.document ?? null
