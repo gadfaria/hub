@@ -1,6 +1,7 @@
 import * as React from "react"
-import { VaultIcon } from "lucide-react"
+import { DatabaseBackupIcon, VaultIcon } from "lucide-react"
 
+import { BackupDialog } from "@/components/backup-dialog"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -18,6 +19,8 @@ export function AppSidebar({
   activeId,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { activeId: string }) {
+  const [backupOpen, setBackupOpen] = React.useState(false)
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -46,8 +49,17 @@ export function AppSidebar({
         />
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Backup" onClick={() => setBackupOpen(true)}>
+              <DatabaseBackupIcon />
+              <span>Backup</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser />
       </SidebarFooter>
+      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} />
     </Sidebar>
   )
 }

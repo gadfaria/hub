@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Backup: a sidebar entry opens a dialog that copies every collection file into `backup-db-vault/<YYYY-MM-DD HHhMM>/` on Drive (server-side copy), lists recent backups with links, and downloads a single JSON export of all data.
+- Restore from a Drive backup or a downloaded `.json` export. It overwrites the modules present in the backup, takes an automatic backup of the current state first, and reloads the app.
 - **Subscriptions** module: recurring charges with category, amount, billing cycle (monthly, quarterly, semiannual, yearly), first charge date, payment method, management link and notes. The next charge is computed from the first charge date (month-end dates clamp to shorter months).
 - Subscription summary: monthly and yearly totals, next charge, charges due in the next 30 days, spending by category and an upcoming-charges list. Cancelled subscriptions leave the totals but stay in a "Canceladas" tab and can be reactivated.
 - **Health** module, organized by person: emergency profile (birth date, blood type, allergies, conditions, health insurance with card number, emergency contact), medications in use (dosage, frequency, start/end, "stop today"), and a history of appointments, exams, vaccines and procedures with provider, specialty, cost, notes, attached files and a follow-up / next-dose date.

@@ -11,15 +11,36 @@ import type { DriveClient, DriveFile } from './drive'
  *     attachments/      role=attachments
  *       <file>          role=attachment, module=<key>
  *
+ *   backup-db-vault/    role=backupRoot
+ *     2026-10-24 14h30/ role=backup
+ *       <key>.json      role=backupFile, collection=<key>
+ *
  * Collections are fixed in code (see src/modules); each one is a single JSON file.
  */
-type Role = 'root' | 'data' | 'attachments' | 'collection'
+type Role = 'root' | 'data' | 'attachments' | 'collection' | 'backupRoot' | 'backup'
 
 const ROLES: Role[] = ['root', 'data', 'attachments', 'collection']
 
 function roleQuery(roles: Role[]): string {
   const clauses = roles.map((role) => `appProperties has { key='vault' and value='${role}' }`)
   return `(${clauses.join(' or ')})`
+}
+
+export interface BackupInfo {
+  /** Drive folder id */
+  id: string
+  name: string
+  /** RFC 3339 */
+  createdTime: string
+}
+
+/** Collection keys are module ids: lowercase, no path characters. */
+const COLLECTION_KEY = /^[a-z][a-z0-9-]*$/
+
+/** "2026-10-24 14h30": sortable, readable, and unique enough for manual backups. */
+function backupFolderName(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}h${pad(date.getMinutes())}`
 }
 
 /** Keeps only the lists the code knows about, defaulting missing ones (new lists need no migration). */
@@ -39,6 +60,7 @@ export class Vault {
   private opening: Promise<void> | undefined
   private readonly collectionFiles = new Map<string, Promise<string>>()
   private readonly writes = new Map<string, Promise<unknown>>()
+  private backupRootId: Promise<string> | undefined
 
   constructor(drive: DriveClient) {
     this.drive = drive
@@ -92,6 +114,105 @@ export class Vault {
 
   trashAttachment(fileId: string): Promise<void> {
     return this.drive.trash(fileId)
+  }
+
+  /** Backups are folders inside backup-db-vault/ (at the Drive root), newest first. */
+  async listBackups(): Promise<BackupInfo[]> {
+    const folders = await this.drive.list(roleQuery(['backup']), 'createdTime desc')
+    return folders.map((f) => ({ id: f.id, name: f.name, createdTime: f.createdTime ?? '' }))
+  }
+
+  /**
+   * Copies every collection file into a new dated folder. Copies run on Drive's side,
+   * so nothing is downloaded. Attachments are not copied: the app never overwrites them.
+   */
+  async backup(): Promise<BackupInfo & { files: number }> {
+    await this.open()
+    // Let saves already in flight land first, so the backup includes them.
+    await Promise.allSettled(this.writes.values())
+    const name = backupFolderName(new Date())
+    const folder = await this.drive.createFolder(name, await this.backupRoot(), { vault: 'backup' })
+    const keys = [...this.collectionFiles.keys()].sort()
+    for (const key of keys) {
+      const fileId = await this.collectionFiles.get(key)!
+      await this.drive.copy(fileId, `${key}.json`, folder.id, { vault: 'backupFile', collection: key })
+    }
+    return { id: folder.id, name, createdTime: new Date().toISOString(), files: keys.length }
+  }
+
+  /** Every collection's content, keyed by collection, for a local download. */
+  async exportAll(): Promise<Record<string, unknown>> {
+    await this.open()
+    await Promise.allSettled(this.writes.values())
+    const result: Record<string, unknown> = {}
+    for (const key of [...this.collectionFiles.keys()].sort()) {
+      result[key] = await this.drive.readJson(await this.collectionFiles.get(key)!)
+    }
+    return result
+  }
+
+  /** Reads every collection file inside a backup folder, keyed by collection. */
+  async readBackup(folderId: string): Promise<Record<string, unknown>> {
+    const files = await this.drive.list(
+      `'${folderId}' in parents and appProperties has { key='vault' and value='backupFile' }`,
+    )
+    const result: Record<string, unknown> = {}
+    for (const file of files) {
+      const key = file.appProperties?.collection
+      if (key) result[key] = await this.drive.readJson(file.id)
+    }
+    return result
+  }
+
+  /**
+   * Replaces each given collection's file with the given content. A restore must
+   * overwrite rather than merge: merging keeps the newest `updatedAt`, so an older
+   * backup would never win. Collections not in `collections` are left untouched.
+   */
+  async restore(collections: Record<string, unknown>): Promise<string[]> {
+    await this.open()
+    const keys = Object.keys(collections).sort()
+    for (const key of keys) {
+      const content = collections[key]
+      if (!COLLECTION_KEY.test(key) || typeof content !== 'object' || content === null || Array.isArray(content)) {
+        throw new Error(`O backup tem um módulo inválido: ${key}`)
+      }
+    }
+    await Promise.all(
+      keys.map((key) => {
+        // Queue behind any save in flight for the same collection.
+        const previous = this.writes.get(key) ?? Promise.resolve()
+        const next = previous.catch(() => undefined).then(() => this.overwrite(key, collections[key] as object))
+        this.writes.set(key, next)
+        return next
+      }),
+    )
+    return keys
+  }
+
+  private async overwrite(key: string, content: object): Promise<void> {
+    const known = this.collectionFiles.get(key)
+    if (known) {
+      await this.drive.updateJson(await known, content)
+      return
+    }
+    const created = this.drive
+      .createJson(`${key}.json`, this.dataId, content, { vault: 'collection', collection: key })
+      .then((file) => file.id)
+    created.catch(() => this.collectionFiles.delete(key))
+    this.collectionFiles.set(key, created)
+    await created
+  }
+
+  private backupRoot(): Promise<string> {
+    this.backupRootId ??= (async () => {
+      const [existing] = await this.drive.list(roleQuery(['backupRoot']))
+      return existing?.id ?? (await this.drive.createFolder('backup-db-vault', undefined, { vault: 'backupRoot' })).id
+    })().catch((err) => {
+      this.backupRootId = undefined
+      throw err
+    })
+    return this.backupRootId
   }
 
   async load<T extends CollectionData>(key: string, empty: T): Promise<T> {

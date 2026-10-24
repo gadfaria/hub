@@ -39,9 +39,22 @@ db-vault/
     documents.json
     health.json
   attachments/      ← uploaded files (images, PDFs), tagged with the owning module
+
+backup-db-vault/
+  2026-10-24 14h30/ ← one folder per backup
+    finance.json
+    …
 ```
 
 Every file is tagged with `appProperties.vault` (`root`, `data`, `attachments`, `collection`), so the app finds them by query rather than by name: renaming or moving the folder doesn't break anything. With the `drive.file` scope the app only sees files it created itself.
+
+## Backup
+
+The **Backup** item at the bottom of the sidebar:
+
+- **Fazer backup no Drive** copies every module's JSON file (server-side, nothing is downloaded) into a new `backup-db-vault/<date time>/` folder at the root of your Drive. Attachments aren't copied: the app never overwrites them, it only moves removed ones to the trash.
+- **Baixar cópia (.json)** downloads a single JSON file with every module's data, for an offline copy that doesn't depend on your Google account.
+- **Restore**, from any backup in the list or from a downloaded `.json`, replaces the data of the modules present in the backup (other modules are left untouched). A restore overwrites instead of merging, since merging keeps the newest version of each item and an older backup would never win. Before restoring, the app automatically backs up the current state, so a restore can always be undone. Records that point to attachments removed after the backup may need those files restored from the Drive trash.
 
 Removing a file from a record moves it to the Drive trash (recoverable for 30 days); nothing is deleted outright.
 

@@ -18,6 +18,8 @@ export interface DriveFile {
   name: string
   mimeType: string
   appProperties?: Record<string, string>
+  /** RFC 3339, only present in list results */
+  createdTime?: string
 }
 
 interface FileMetadata {
@@ -46,11 +48,11 @@ export class DriveClient {
     return res
   }
 
-  async list(q: string): Promise<DriveFile[]> {
+  async list(q: string, orderBy = 'createdTime'): Promise<DriveFile[]> {
     const params = new URLSearchParams({
       q: `${q} and trashed = false`,
-      fields: `files(${FILE_FIELDS})`,
-      orderBy: 'createdTime',
+      fields: `files(${FILE_FIELDS},createdTime)`,
+      orderBy,
       pageSize: '1000',
       spaces: 'drive',
     })
@@ -121,6 +123,16 @@ export class DriveClient {
       method: 'POST',
       headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
+    })
+    return res.json()
+  }
+
+  /** Server-side copy: nothing is downloaded. appProperties given here replace the copied ones. */
+  async copy(fileId: string, name: string, parentId: string, appProperties?: Record<string, string>): Promise<DriveFile> {
+    const res = await this.request(`${API}/files/${fileId}/copy?fields=${FILE_FIELDS}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, parents: [parentId], appProperties }),
     })
     return res.json()
   }
