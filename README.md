@@ -23,7 +23,7 @@ Para criar um módulo novo:
 ## Estrutura no Drive
 
 ```
-Vault/
+db-vault/
   data/
     financas.json   ← um arquivo por módulo
   anexos/           ← arquivos (PDF, imagens) — reservado para módulos futuros

@@ -5,7 +5,7 @@ import type { DriveClient, DriveFile } from './drive'
 /**
  * Layout on Drive (every file is tagged with appProperties.vault = <role>):
  *
- *   Vault/              role=root
+ *   db-vault/           role=root
  *     data/             role=data
  *       <key>.json      role=collection, collection=<key>
  *     anexos/           role=attachments
@@ -60,7 +60,7 @@ export class Vault {
     // Results are ordered by createdTime, so the oldest file of each role wins if duplicates exist.
     const first = (role: Role): DriveFile | undefined => files.find((f) => f.appProperties?.vault === role)
 
-    this.rootId = first('root')?.id ?? (await this.drive.createFolder('Vault', undefined, { vault: 'root' })).id
+    this.rootId = first('root')?.id ?? (await this.drive.createFolder('db-vault', undefined, { vault: 'root' })).id
     this.dataId = first('data')?.id ?? (await this.drive.createFolder('data', this.rootId, { vault: 'data' })).id
     this.attachmentsId =
       first('attachments')?.id ?? (await this.drive.createFolder('anexos', this.rootId, { vault: 'attachments' })).id
