@@ -1,6 +1,6 @@
 # Vault
 
-A personal vault organized into modules (Finance, Vehicles, Documents, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
+A personal vault organized into modules (Finance, Vehicles, Documents, Health, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
 
 Live at <https://vault.gadfaria.com>.
 
@@ -17,6 +17,7 @@ Modules are fixed and defined in code. Currently:
 - **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time.
 - **Vehicles** — vehicle registry (plate, renavam, chassis…) and maintenance history: services, repairs and part replacements, with odometer, workshop, labor and parts. The current odometer is the highest reading recorded, from a service or a standalone reading.
 - **Documents** — ID cards, driver's license, passport, certificates, insurance… per person, with number, issuer, issue and expiry dates, and photos/PDFs stored in the Drive `attachments/` folder. Expired documents and those expiring within 90 days are highlighted.
+- **Health** — per person: an emergency profile (blood type, allergies, conditions, health insurance, emergency contact), medications in use with dosage and schedule, and a history of appointments, exams, vaccines and procedures with attached results and follow-up / next-dose dates.
 
 To add a module:
 
@@ -34,6 +35,7 @@ db-vault/
     finance.json    ← one file per module
     vehicles.json
     documents.json
+    health.json
   attachments/      ← uploaded files (images, PDFs), tagged with the owning module
 ```
 

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Health** module, organized by person: emergency profile (birth date, blood type, allergies, conditions, health insurance with card number, emergency contact), medications in use (dosage, frequency, start/end, "stop today"), and a history of appointments, exams, vaccines and procedures with provider, specialty, cost, notes, attached files and a follow-up / next-dose date.
+- Health summary cards: appointments and exams this year, next scheduled follow-up and medications in use.
 - **Documents** module: personal documents (ID, CPF, driver's license, passport, voter ID, certificates, insurance, other) per person, with number, issuer, issue and expiry dates, notes and attached files.
 - Expiry tracking: expired documents and those expiring within 90 days are flagged in the table and summary cards.
 - Owner tabs to filter documents by person, and one-click copy of the document number.
