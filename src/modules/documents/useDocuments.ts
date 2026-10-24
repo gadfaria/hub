@@ -3,7 +3,8 @@ import { newSyncable, touch } from '@/domain/merge'
 import type { Attachment, Syncable } from '@/domain/types'
 import { useAttachments } from '@/storage/useAttachments'
 import { useCollection } from '@/storage/useCollection'
-import { DOCUMENT_TYPES, expiryStatus, type DocumentsData, type ExpiryStatus, type PersonalDocument } from './types'
+import type { ExpiryStatus } from '@/lib/expiry'
+import { DOCUMENT_TYPES, expiryStatus, type DocumentsData, type PersonalDocument } from './types'
 
 const EMPTY: DocumentsData = { documents: [] }
 

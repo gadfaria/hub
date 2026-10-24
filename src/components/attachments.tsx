@@ -1,5 +1,5 @@
 import { useRef } from "react"
-import { FileTextIcon, Loader2Icon, PaperclipIcon, XIcon } from "lucide-react"
+import { FileIcon, FileTextIcon, Loader2Icon, PaperclipIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Attachment } from "@/domain/types"
 import { formatBytes } from "@/lib/format"
@@ -115,5 +115,30 @@ export function AttachmentPicker({
         {pending ? "Enviando…" : "Anexar arquivo"}
       </Button>
     </>
+  )
+}
+
+/** Files picked in a form but not uploaded yet (they upload on save). */
+export function PendingFileList({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
+  return (
+    <ul className="flex flex-col divide-y rounded-md border text-sm">
+      {files.map((file, i) => (
+        <li key={`${file.name}-${i}`} className="flex items-center gap-2 px-3 py-2">
+          <FileIcon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="truncate">{file.name}</span>
+          <span className="ml-auto shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-6"
+            aria-label={`Remover ${file.name}`}
+            onClick={() => onRemove(i)}
+          >
+            <XIcon className="size-3.5" />
+          </Button>
+        </li>
+      ))}
+    </ul>
   )
 }

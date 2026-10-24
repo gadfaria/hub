@@ -29,7 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/format'
 import { DocumentDetailDialog } from './DocumentDetailDialog'
 import { DocumentFormDialog } from './DocumentFormDialog'
-import { ExpiryBadge } from './ExpiryBadge'
+import { ExpiryBadge } from '@/components/expiry-badge'
 import { DOCUMENT_TYPES, EXPIRING_SOON_DAYS, documentLabel, type PersonalDocument } from './types'
 import { useDocuments, type DocumentRow } from './useDocuments'
 

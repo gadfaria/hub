@@ -33,13 +33,26 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate, formatKm, formatMoney, today } from '@/lib/format'
+import { InsuranceCard } from './InsuranceCard'
 import { OdometerDialog } from './OdometerDialog'
+import { PolicyFormDialog } from './PolicyFormDialog'
 import { ServiceFormDialog } from './ServiceFormDialog'
-import { SERVICE_TYPES, VEHICLE_TYPES, serviceTotal, vehicleLabel, type Service, type Vehicle } from './types'
+import {
+  SERVICE_TYPES,
+  VEHICLE_TYPES,
+  serviceTotal,
+  vehicleLabel,
+  type InsurancePolicy,
+  type Service,
+  type Vehicle,
+} from './types'
 import type { useVehicles, VehicleSummary } from './useVehicles'
 import { VehicleFormDialog } from './VehicleFormDialog'
 
-type Confirm = { kind: 'vehicle'; vehicle: Vehicle } | { kind: 'service'; service: Service }
+type Confirm =
+  | { kind: 'vehicle'; vehicle: Vehicle }
+  | { kind: 'service'; service: Service }
+  | { kind: 'policy'; policy: InsurancePolicy }
 
 interface VehicleDetailProps {
   /** Undefined while the collection is still loading. */
@@ -52,6 +65,7 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
   const [odometer, setOdometer] = useState(false)
   const [serviceDialog, setServiceDialog] = useState<{ service?: Service } | null>(null)
   const [confirm, setConfirm] = useState<Confirm | null>(null)
+  const [policyDialog, setPolicyDialog] = useState<{ policy?: InsurancePolicy; renewing?: InsurancePolicy } | null>(null)
 
   const workshops = [
     ...new Set(vehicles.summaries.flatMap((s) => s.services.map((x) => x.workshop)).filter(Boolean)),
@@ -123,11 +137,20 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
           />
         </div>
 
-        <div className="px-4 lg:px-6">
+        <div className="grid grid-cols-1 items-start gap-4 px-4 lg:px-6 @4xl/main:grid-cols-2">
           <VehicleInfo
             vehicle={vehicle}
             onEdit={() => setEditing(true)}
             onDelete={() => setConfirm({ kind: 'vehicle', vehicle })}
+          />
+          <InsuranceCard
+            currentPolicy={summary.currentPolicy}
+            nextPolicy={summary.nextPolicy}
+            pastPolicies={summary.pastPolicies}
+            onAdd={() => setPolicyDialog({})}
+            onRenew={(renewing) => setPolicyDialog({ renewing })}
+            onEdit={(policy) => setPolicyDialog({ policy })}
+            onDelete={(policy) => setConfirm({ kind: 'policy', policy })}
           />
         </div>
 
@@ -167,16 +190,34 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
         onSubmit={(input) => vehicles.saveService(vehicle.id, input, serviceDialog?.service)}
         onDelete={(service) => setConfirm({ kind: 'service', service })}
       />
+      <PolicyFormDialog
+        open={policyDialog !== null && confirm === null}
+        onOpenChange={(open) => !open && setPolicyDialog(null)}
+        policy={policyDialog?.policy}
+        renewing={policyDialog?.renewing}
+        onSubmit={(input, newFiles, removed) =>
+          vehicles.savePolicy(vehicle.id, input, newFiles, removed, policyDialog?.policy)
+        }
+        onDelete={(policy) => setConfirm({ kind: 'policy', policy })}
+      />
       <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{confirm?.kind === 'vehicle' ? 'Excluir veículo?' : 'Excluir manutenção?'}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {confirm?.kind === 'vehicle'
+                ? 'Excluir veículo?'
+                : confirm?.kind === 'policy'
+                  ? 'Excluir seguro?'
+                  : 'Excluir manutenção?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.kind === 'vehicle'
-                ? `${vehicleLabel(confirm.vehicle)} e todo o histórico de manutenção e km dele serão removidos.`
+                ? `${vehicleLabel(confirm.vehicle)} e todo o histórico de manutenção, km e seguros dele serão removidos.`
                 : confirm?.kind === 'service'
                   ? `${confirm.service.title} (${formatDate(confirm.service.date)}) será removida do histórico.`
-                  : ''}
+                  : confirm?.kind === 'policy'
+                    ? `A apólice ${confirm.policy.policyNumber || ''} da ${confirm.policy.insurer} será removida${confirm.policy.attachments.length ? ' e os arquivos vão para a lixeira do Drive' : ''}. Para trocar de seguro, prefira "Renovar".`
+                    : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -188,6 +229,8 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
                   if (await vehicles.deleteVehicle(confirm.vehicle)) location.hash = '#/vehicles'
                 } else if (confirm?.kind === 'service') {
                   if (await vehicles.deleteService(confirm.service)) setServiceDialog(null)
+                } else if (confirm?.kind === 'policy') {
+                  if (await vehicles.deletePolicy(confirm.policy)) setPolicyDialog(null)
                 }
                 setConfirm(null)
               }}
@@ -272,7 +315,7 @@ function VehicleInfo({ vehicle, onEdit, onDelete }: { vehicle: Vehicle; onEdit: 
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm @xl/main:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm @xl/main:grid-cols-4 @4xl/main:grid-cols-2">
           {fields.map(([label, value]) => (
             <div key={label} className="flex flex-col gap-0.5">
               <dt className="text-xs text-muted-foreground">{label}</dt>

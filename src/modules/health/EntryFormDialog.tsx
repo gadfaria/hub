@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { FileIcon, XIcon } from 'lucide-react'
-import { AttachmentGrid, AttachmentPicker } from '@/components/attachments'
+import { AttachmentGrid, AttachmentPicker, PendingFileList } from '@/components/attachments'
 import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import type { Attachment } from '@/domain/types'
-import { formatBytes, formatMoneyInput, parseMoney, today } from '@/lib/format'
+import { formatMoneyInput, parseMoney, today } from '@/lib/format'
 import { ENTRY_KINDS, type EntryKind, type HealthEntry } from './types'
 import type { EntryInput } from './useHealth'
 
@@ -181,25 +180,7 @@ function EntryForm({ person, people, providers, entry, onSubmit, onOpenChange, o
           <AttachmentGrid attachments={existing} onRemove={(a) => setRemoved((r) => [...r, a])} />
         )}
         {newFiles.length > 0 && (
-          <ul className="flex flex-col divide-y rounded-md border text-sm">
-            {newFiles.map((file, i) => (
-              <li key={`${file.name}-${i}`} className="flex items-center gap-2 px-3 py-2">
-                <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{file.name}</span>
-                <span className="ml-auto shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  aria-label={`Remover ${file.name}`}
-                  onClick={() => setNewFiles((f) => f.filter((_, j) => j !== i))}
-                >
-                  <XIcon className="size-3.5" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <PendingFileList files={newFiles} onRemove={(i) => setNewFiles((f) => f.filter((_, j) => j !== i))} />
         )}
         {existing.length === 0 && newFiles.length === 0 && (
           <p className="text-sm text-muted-foreground">Resultado de exame, receita, carteira de vacinação…</p>

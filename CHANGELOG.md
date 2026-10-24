@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Car insurance inside each vehicle: insurer, policy number, broker, coverage period, premium and installments, deductible, coverages, 24h assistance phone (tap to call), notes and attached files. A renewal reminder shows two months before the end, "Renovar" prefills the next policy, and past policies stay listed as history.
 - Backup: a sidebar entry opens a dialog that copies every collection file into `backup-db-vault/<YYYY-MM-DD HHhMM>/` on Drive (server-side copy), lists recent backups with links, and downloads a single JSON export of all data.
 - Restore from a Drive backup or a downloaded `.json` export. It overwrites the modules present in the backup, takes an automatic backup of the current state first, and reloads the app.
 - **Subscriptions** module: recurring charges with category, amount, billing cycle (monthly, quarterly, semiannual, yearly), first charge date, payment method, management link and notes. The next charge is computed from the first charge date (month-end dates clamp to shorter months).
@@ -21,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 - README rewritten in English, with the Google Cloud setup matching the current configuration (Testing mode with test users).
 - Shared `Field` form component moved to `src/components/form-field.tsx`.
+- Expiry status and badge shared in `src/lib/expiry.ts` and `src/components/expiry-badge.tsx`; pending-upload file list shared as `PendingFileList`.
 
 ## [0.2.0] - 2026-10-24
 

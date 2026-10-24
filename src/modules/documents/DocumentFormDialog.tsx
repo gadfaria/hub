@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { FileIcon, XIcon } from 'lucide-react'
-import { AttachmentPicker } from '@/components/attachments'
+import { AttachmentPicker, PendingFileList } from '@/components/attachments'
 import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +13,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { formatBytes } from '@/lib/format'
 import { DOCUMENT_TYPES, type DocumentType, type PersonalDocument } from './types'
 import type { DocumentInput } from './useDocuments'
 
@@ -123,25 +121,7 @@ function DocumentForm({ document, owners, defaultOwner, onSubmit, onOpenChange }
           {files.length === 0 ? (
             <p className="text-sm text-muted-foreground">Foto ou PDF do documento, frente e verso.</p>
           ) : (
-            <ul className="flex flex-col divide-y rounded-md border text-sm">
-              {files.map((file, i) => (
-                <li key={`${file.name}-${i}`} className="flex items-center gap-2 px-3 py-2">
-                  <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{file.name}</span>
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">{formatBytes(file.size)}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-6"
-                    aria-label={`Remover ${file.name}`}
-                    onClick={() => setFiles((f) => f.filter((_, j) => j !== i))}
-                  >
-                    <XIcon className="size-3.5" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            <PendingFileList files={files} onRemove={(i) => setFiles((f) => f.filter((_, j) => j !== i))} />
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/format'
-import type { ExpiryStatus } from './types'
+import type { ExpiryStatus } from '@/lib/expiry'
 
 function relative(days: number): string {
   if (days === 0) return 'hoje'

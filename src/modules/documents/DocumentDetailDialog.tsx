@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { Attachment } from '@/domain/types'
 import { formatDate } from '@/lib/format'
-import { ExpiryBadge } from './ExpiryBadge'
+import { ExpiryBadge } from '@/components/expiry-badge'
 import { DOCUMENT_TYPES, documentLabel, expiryStatus, type PersonalDocument } from './types'
 
 interface DocumentDetailDialogProps {

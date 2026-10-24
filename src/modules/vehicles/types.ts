@@ -1,4 +1,5 @@
-import type { Syncable } from '@/domain/types'
+import type { Attachment, Syncable } from '@/domain/types'
+import { getExpiryStatus, type ExpiryStatus } from '@/lib/expiry'
 
 export const VEHICLE_TYPES = {
   car: 'Carro',
@@ -62,10 +63,41 @@ export interface OdometerReading extends Syncable {
   km: number
 }
 
+/** A car insurance policy. Renewals are new policies, so past ones stay as history. */
+export interface InsurancePolicy extends Syncable {
+  vehicleId: string
+  insurer: string
+  policyNumber: string
+  broker: string
+  /** Coverage period, YYYY-MM-DD */
+  startDate: string
+  endDate: string
+  /** Total premium, in cents */
+  premium: number
+  /** Number of installments the premium is split into */
+  installments: number
+  /** Deductible (franquia), in cents */
+  deductible: number
+  /** One coverage per line, e.g. "Colisão, incêndio e roubo: 100% FIPE" */
+  coverages: string
+  /** 24h assistance phone */
+  assistancePhone: string
+  notes: string
+  attachments: Attachment[]
+}
+
 export type VehiclesData = {
   vehicles: Vehicle[]
   services: Service[]
   readings: OdometerReading[]
+  policies: InsurancePolicy[]
+}
+
+/** Renewal reminders start two months ahead. */
+export const POLICY_RENEWAL_DAYS = 60
+
+export function policyStatus(policy: Pick<InsurancePolicy, 'endDate'>): ExpiryStatus {
+  return getExpiryStatus(policy.endDate, POLICY_RENEWAL_DAYS)
 }
 
 export function vehicleLabel(vehicle: Pick<Vehicle, 'name' | 'brand' | 'model'>): string {
