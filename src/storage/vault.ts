@@ -1,5 +1,5 @@
 import { mergeById } from '@/domain/merge'
-import { SCHEMA_VERSION, type CollectionData } from '@/domain/types'
+import { SCHEMA_VERSION, type Attachment, type CollectionData } from '@/domain/types'
 import type { DriveClient, DriveFile } from './drive'
 
 /**
@@ -9,6 +9,7 @@ import type { DriveClient, DriveFile } from './drive'
  *     data/             role=data
  *       <key>.json      role=collection, collection=<key>
  *     attachments/      role=attachments
+ *       <file>          role=attachment, module=<key>
  *
  * Collections are fixed in code (see src/modules); each one is a single JSON file.
  */
@@ -73,8 +74,24 @@ export class Vault {
     }
   }
 
-  get attachmentsFolderId(): string {
-    return this.attachmentsId
+  /** Uploads a file into attachments/, tagged with the module that owns it. */
+  async uploadAttachment(file: File, module: string): Promise<Attachment> {
+    await this.open()
+    const uploaded = await this.drive.uploadFile(file, this.attachmentsId, { vault: 'attachment', module })
+    return {
+      id: uploaded.id,
+      name: uploaded.name,
+      mimeType: uploaded.mimeType,
+      size: Number(uploaded.size ?? file.size),
+    }
+  }
+
+  downloadAttachment(fileId: string): Promise<Blob> {
+    return this.drive.downloadBlob(fileId)
+  }
+
+  trashAttachment(fileId: string): Promise<void> {
+    return this.drive.trash(fileId)
   }
 
   async load<T extends CollectionData>(key: string, empty: T): Promise<T> {

@@ -106,6 +106,39 @@ export class DriveClient {
     return res.json()
   }
 
+  /** Uploads a binary file (image, PDF…) with its metadata in one multipart request. */
+  async uploadFile(file: File, parentId: string, appProperties?: Record<string, string>): Promise<DriveFile & { size?: string }> {
+    const mimeType = file.type || 'application/octet-stream'
+    const metadata: FileMetadata = { name: file.name, mimeType, parents: [parentId], appProperties }
+    const boundary = `vault-${crypto.randomUUID()}`
+    const body = new Blob([
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+      `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+      file,
+      `\r\n--${boundary}--`,
+    ])
+    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS},size`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    })
+    return res.json()
+  }
+
+  async downloadBlob(fileId: string): Promise<Blob> {
+    const res = await this.request(`${API}/files/${fileId}?alt=media`)
+    return res.blob()
+  }
+
+  /** Moves a file to the Drive trash (recoverable for 30 days), never deletes it outright. */
+  async trash(fileId: string): Promise<void> {
+    await this.request(`${API}/files/${fileId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trashed: true }),
+    })
+  }
+
   async updateJson(fileId: string, data: unknown): Promise<void> {
     await this.request(`${UPLOAD}/files/${fileId}?uploadType=media`, {
       method: 'PATCH',

@@ -5,11 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- **Documents** module: personal documents (ID, CPF, driver's license, passport, voter ID, certificates, insurance, other) per person, with number, issuer, issue and expiry dates, notes and attached files.
+- Expiry tracking: expired documents and those expiring within 90 days are flagged in the table and summary cards.
+- Owner tabs to filter documents by person, and one-click copy of the document number.
+- File attachments stored in the Drive `attachments/` folder: upload (images and PDFs, up to 20 MB), thumbnails, open in a new tab, and removal to the Drive trash. Reusable by any module through `useAttachments`, `AttachmentGrid` and `AttachmentPicker`.
+- This changelog.
+
 ### Changed
 - README rewritten in English, with the Google Cloud setup matching the current configuration (Testing mode with test users).
-
-### Added
-- This changelog.
+- Shared `Field` form component moved to `src/components/form-field.tsx`.
 
 ## [0.2.0] - 2026-10-24
 

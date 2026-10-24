@@ -1,6 +1,6 @@
 # Vault
 
-A personal vault organized into modules (Finance, Vehicles, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
+A personal vault organized into modules (Finance, Vehicles, Documents, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
 
 Live at <https://vault.gadfaria.com>.
 
@@ -16,12 +16,13 @@ Modules are fixed and defined in code. Currently:
 
 - **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time.
 - **Vehicles** — vehicle registry (plate, renavam, chassis…) and maintenance history: services, repairs and part replacements, with odometer, workshop, labor and parts. The current odometer is the highest reading recorded, from a service or a standalone reading.
+- **Documents** — ID cards, driver's license, passport, certificates, insurance… per person, with number, issuer, issue and expiry dates, and photos/PDFs stored in the Drive `attachments/` folder. Expired documents and those expiring within 90 days are highlighted.
 
 To add a module:
 
 1. Create `src/modules/<id>/` with an `index.ts` exporting a `VaultModule` (`id`, `name`, `icon`, `Screen`).
 2. Register it in `src/modules/index.ts`. It shows up in the sidebar and at `#/<id>`; sub-routes (`#/<id>/...`) reach the screen through the `path` prop.
-3. In the screen, call `useCollection('<id>', EMPTY)` to read and write `data/<id>.json`. `EMPTY` defines the module's lists (e.g. `{ accounts: [], balances: [] }`); lists added later need no migration.
+3. In the screen, call `useCollection('<id>', EMPTY)` to read and write `data/<id>.json`. `EMPTY` defines the module's lists (e.g. `{ accounts: [], balances: [] }`); lists added later need no migration. For files, `useAttachments('<id>')` uploads to and trashes from `attachments/`, and `<AttachmentGrid>` / `<AttachmentPicker>` render them.
 
 Code, file names, routes and stored values are in English; UI text is in Brazilian Portuguese.
 
@@ -32,10 +33,13 @@ db-vault/
   data/
     finance.json    ← one file per module
     vehicles.json
-  attachments/      ← files (PDFs, images), reserved for future modules
+    documents.json
+  attachments/      ← uploaded files (images, PDFs), tagged with the owning module
 ```
 
 Every file is tagged with `appProperties.vault` (`root`, `data`, `attachments`, `collection`), so the app finds them by query rather than by name: renaming or moving the folder doesn't break anything. With the `drive.file` scope the app only sees files it created itself.
+
+Removing a file from a record moves it to the Drive trash (recoverable for 30 days); nothing is deleted outright.
 
 Every write is **read → merge → write**: each item has an `id`, `updatedAt` and `deleted` flag, and the most recent `updatedAt` wins. Editing from two devices never overwrites the other's changes. Money is stored in cents (integers).
 

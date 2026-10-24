@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { formatKm, parseKm, today } from '@/lib/format'
-import { Field } from './VehicleFormDialog'
 
 interface OdometerDialogProps {
   open: boolean

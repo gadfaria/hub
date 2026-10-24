@@ -57,6 +57,13 @@ export function endOfPreviousMonth(): string {
   return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 0))
 }
 
+/** Whole days from today until `isoDate` (negative when it is in the past). */
+export function daysUntil(isoDate: string): number {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((parseDate(isoDate).getTime() - start.getTime()) / 86_400_000)
+}
+
 export function formatDate(isoDate: string, options?: Intl.DateTimeFormatOptions): string {
   return parseDate(isoDate).toLocaleDateString('pt-BR', options)
 }
@@ -90,4 +97,10 @@ export function formatKm(value: number): string {
 export function parseKm(input: string): number | null {
   const digits = input.replace(/\D/g, '')
   return digits ? Number(digits) : null
+}
+
+/** 2_500_000 → "2,4 MB" */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`
 }

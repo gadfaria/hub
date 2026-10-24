@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { VEHICLE_TYPES, type Vehicle, type VehicleType } from './types'
@@ -122,29 +122,5 @@ function VehicleForm({ vehicle, onSubmit, onOpenChange }: VehicleFormDialogProps
         </Button>
       </DialogFooter>
     </form>
-  )
-}
-
-export function Field({
-  label,
-  id,
-  optional,
-  className,
-  children,
-}: {
-  label: string
-  id: string
-  optional?: boolean
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className={`flex flex-col gap-2 ${className ?? ''}`}>
-      <Label htmlFor={id}>
-        {label}
-        {optional && <span className="font-normal text-muted-foreground">(opcional)</span>}
-      </Label>
-      {children}
-    </div>
   )
 }

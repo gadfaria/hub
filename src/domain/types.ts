@@ -8,6 +8,16 @@ export interface Syncable {
   deleted: boolean
 }
 
+/** A file stored in the Drive attachments folder, referenced from a record. */
+export interface Attachment {
+  /** Drive file id */
+  id: string
+  name: string
+  mimeType: string
+  /** Bytes */
+  size: number
+}
+
 /**
  * Content of one collection file: named lists of syncable items,
  * e.g. `{ accounts: Account[], balances: BalanceEntry[] }`.

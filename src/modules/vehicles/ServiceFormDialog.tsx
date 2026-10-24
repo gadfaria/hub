@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { PlusIcon, XIcon } from 'lucide-react'
+import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,7 +17,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatMoney, formatMoneyInput, parseKm, parseMoney, today } from '@/lib/format'
 import { SERVICE_TYPES, type Service, type ServiceType } from './types'
 import type { ServiceInput } from './useVehicles'
-import { Field } from './VehicleFormDialog'
 
 interface ServiceFormDialogProps {
   open: boolean
