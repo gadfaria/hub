@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate, formatMoney } from './format'
+import { formatDate, formatMoney } from '@/lib/format'
 import { ACCOUNT_TYPES, accountLabel, type Account } from './types'
-import type { InstitutionGroup } from './useFinancas'
+import type { InstitutionGroup } from './useFinance'
 
 interface AccountsTableProps {
   loading: boolean

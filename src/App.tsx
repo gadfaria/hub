@@ -5,8 +5,8 @@ import { MODULES } from '@/modules'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { VaultProvider } from '@/storage/VaultProvider'
 
-/** Hash routing (#/financas): works on any static host and keeps the phone's back button. */
-function useRoute(): string {
+/** Hash routing (#/finance): works on any static host and keeps the phone's back button. */
+function useRoute(): string[] {
   const [hash, setHash] = useState(() => location.hash)
   useEffect(() => {
     const onChange = () => {
@@ -16,20 +16,25 @@ function useRoute(): string {
     window.addEventListener('hashchange', onChange)
     return () => window.removeEventListener('hashchange', onChange)
   }, [])
-  return hash.replace(/^#\/?/, '')
+  return hash
+    .replace(/^#\/?/, '')
+    .split('/')
+    .filter(Boolean)
+    .map(decodeURIComponent)
 }
 
 export default function App() {
   const { session, expired } = useAuth()
-  const route = useRoute()
+  const [moduleId, ...path] = useRoute()
   if (!session || expired) return <LoginScreen />
 
   // Unknown routes (and "/") land on the first module.
-  const active = MODULES.find((m) => m.id === route) ?? MODULES[0]
+  const active = MODULES.find((m) => m.id === moduleId)
+  const Screen = (active ?? MODULES[0]).Screen
   return (
     <VaultProvider>
-      <AppLayout activeId={active.id}>
-        <active.Screen />
+      <AppLayout activeId={(active ?? MODULES[0]).id}>
+        <Screen path={active ? path : []} />
       </AppLayout>
     </VaultProvider>
   )

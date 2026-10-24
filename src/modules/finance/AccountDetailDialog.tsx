@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatDate, formatMoney, formatMoneyInput, parseMoney, today } from './format'
+import { formatDate, formatMoney, formatMoneyInput, parseMoney, today } from '@/lib/format'
 import { ACCOUNT_TYPES, accountLabel, type Account, type BalanceEntry } from './types'
 
 interface AccountDetailDialogProps {

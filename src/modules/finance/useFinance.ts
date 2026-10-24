@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react'
 import { newSyncable, touch } from '@/domain/merge'
 import { useCollection } from '@/storage/useCollection'
-import { today } from './format'
-import type { Account, AccountType, BalanceEntry, FinancasData } from './types'
+import { today } from '@/lib/format'
+import type { Account, AccountType, BalanceEntry, FinanceData } from './types'
 
-const EMPTY: FinancasData = { accounts: [], balances: [] }
+const EMPTY: FinanceData = { accounts: [], balances: [] }
 
 export interface AccountSummary {
   account: Account
@@ -59,8 +59,8 @@ export function valueAt(series: SeriesPoint[], date: string): number | undefined
   return value
 }
 
-export function useFinancas() {
-  const { data, loading, save } = useCollection('financas', EMPTY)
+export function useFinance() {
+  const { data, loading, save } = useCollection('finance', EMPTY)
 
   const derived = useMemo(() => {
     const accounts = (data?.accounts ?? []).filter((a) => !a.deleted)

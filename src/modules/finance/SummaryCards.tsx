@@ -3,8 +3,8 @@ import { MinusIcon, TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate, formatMoney, formatPercent, formatSignedMoney, daysAgo, endOfPreviousMonth } from './format'
-import { valueAt, type InstitutionGroup, type SeriesPoint } from './useFinancas'
+import { formatDate, formatMoney, formatPercent, formatSignedMoney, daysAgo, endOfPreviousMonth } from '@/lib/format'
+import { valueAt, type InstitutionGroup, type SeriesPoint } from './useFinance'
 
 interface SummaryCardsProps {
   loading: boolean

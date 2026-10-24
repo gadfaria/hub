@@ -1,12 +1,12 @@
 import type { Syncable } from '@/domain/types'
 
 export const ACCOUNT_TYPES = {
-  conta: 'Conta corrente',
-  poupanca: 'Poupança',
-  investimento: 'Investimentos',
-  previdencia: 'Previdência',
-  cripto: 'Cripto',
-  outro: 'Outro',
+  checking: 'Conta corrente',
+  savings: 'Poupança',
+  investment: 'Investimentos',
+  pension: 'Previdência',
+  crypto: 'Cripto',
+  other: 'Outro',
 } as const
 
 export type AccountType = keyof typeof ACCOUNT_TYPES
@@ -28,7 +28,7 @@ export interface BalanceEntry extends Syncable {
   amount: number
 }
 
-export type FinancasData = {
+export type FinanceData = {
   accounts: Account[]
   balances: BalanceEntry[]
 }

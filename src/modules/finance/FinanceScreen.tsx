@@ -20,11 +20,11 @@ import { AccountsTable } from './AccountsTable'
 import { NetWorthChart } from './NetWorthChart'
 import { SummaryCards } from './SummaryCards'
 import { accountLabel, type Account } from './types'
-import { useFinancas } from './useFinancas'
+import { useFinance } from './useFinance'
 
-export function FinancasScreen() {
-  const financas = useFinancas()
-  const { loading, groups, total, lastUpdate, institutions, history, series } = financas
+export function FinanceScreen() {
+  const finance = useFinance()
+  const { loading, groups, total, lastUpdate, institutions, history, series } = finance
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [deleting, setDeleting] = useState<Account | null>(null)
@@ -35,13 +35,13 @@ export function FinancasScreen() {
 
   function handleCreate(values: AccountFormValues) {
     const { amount, date, ...account } = values
-    return financas.addAccount(account, amount, date)
+    return finance.addAccount(account, amount, date)
   }
 
   function handleEdit(values: AccountFormValues) {
     if (!editing) return Promise.resolve(false)
     const { institution, name, type } = values
-    return financas.updateAccount(editing, { institution, name, type })
+    return finance.updateAccount(editing, { institution, name, type })
   }
 
   return (
@@ -95,8 +95,8 @@ export function FinancasScreen() {
         account={editing || deleting ? null : selected}
         history={selected ? (history.get(selected.id) ?? []) : []}
         onClose={() => setSelectedId(null)}
-        onAddBalance={financas.addBalance}
-        onDeleteBalance={financas.deleteBalance}
+        onAddBalance={finance.addBalance}
+        onDeleteBalance={finance.deleteBalance}
         onEdit={setEditing}
         onDelete={setDeleting}
       />
@@ -115,7 +115,7 @@ export function FinancasScreen() {
               variant="destructive"
               onClick={async () => {
                 if (!deleting) return
-                if (await financas.deleteAccount(deleting)) {
+                if (await finance.deleteAccount(deleting)) {
                   if (selectedId === deleting.id) setSelectedId(null)
                 }
                 setDeleting(null)

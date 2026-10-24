@@ -78,3 +78,16 @@ export function formatPercent(current: number, base: number | undefined): string
 export function formatSignedMoney(cents: number): string {
   return `${cents > 0 ? '+' : ''}${formatMoney(cents)}`
 }
+
+const km = new Intl.NumberFormat('pt-BR')
+
+/** 45230 → "45.230 km" */
+export function formatKm(value: number): string {
+  return `${km.format(value)} km`
+}
+
+/** Parses an odometer reading typed as "45.230" or "45230 km". Returns null when unreadable. */
+export function parseKm(input: string): number | null {
+  const digits = input.replace(/\D/g, '')
+  return digits ? Number(digits) : null
+}

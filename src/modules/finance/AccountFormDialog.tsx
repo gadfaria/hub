@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { parseMoney, today } from './format'
+import { parseMoney, today } from '@/lib/format'
 import { ACCOUNT_TYPES, type Account, type AccountType } from './types'
 
 export interface AccountFormValues {
@@ -47,7 +47,7 @@ function AccountForm({ institutions, account, onSubmit, onOpenChange }: AccountF
   const editing = Boolean(account)
   const [institution, setInstitution] = useState(account?.institution ?? '')
   const [name, setName] = useState(account?.name ?? '')
-  const [type, setType] = useState<AccountType>(account?.type ?? 'conta')
+  const [type, setType] = useState<AccountType>(account?.type ?? 'checking')
   const [amountText, setAmountText] = useState('')
   const [date, setDate] = useState(today)
   const [pending, setPending] = useState(false)

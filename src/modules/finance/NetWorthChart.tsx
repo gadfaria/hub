@@ -5,8 +5,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { formatDate, formatMoney, formatShortDate, monthsAgo } from './format'
-import { valueAt, type SeriesPoint } from './useFinancas'
+import { formatDate, formatMoney, formatShortDate, monthsAgo } from '@/lib/format'
+import { valueAt, type SeriesPoint } from './useFinance'
 
 const RANGES = {
   '3m': { label: 'Últimos 3 meses', months: 3 },

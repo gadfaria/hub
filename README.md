@@ -13,11 +13,12 @@ Um "cofre" pessoal, organizado em módulos (Finanças, …), com os dados guarda
 Os módulos são fixos e definidos no código. Hoje:
 
 - **Finanças** — contas por instituição (banco, corretora, cripto…), cada uma com um histórico de saldos. O patrimônio total é a soma do saldo mais recente de cada conta; o gráfico mostra a evolução ao longo do tempo.
+- **Veículos** — cadastro de veículos (placa, renavam, chassi…) e histórico de manutenção: revisões, reparos e trocas de peças, com km, oficina, mão de obra e peças. O km atual é o maior registrado (em manutenções ou leituras avulsas do hodômetro).
 
 Para criar um módulo novo:
 
 1. Crie `src/modules/<id>/` com um `index.ts` exportando um `VaultModule` (`id`, `name`, `icon`, `Screen`).
-2. Registre em `src/modules/index.ts`. Ele aparece na sidebar e em `#/<id>`.
+2. Registre em `src/modules/index.ts`. Ele aparece na sidebar e em `#/<id>`; sub-rotas (`#/<id>/...`) chegam na tela via prop `path`.
 3. Na tela, use `useCollection('<id>', EMPTY)` para ler e gravar `data/<id>.json`. `EMPTY` define as listas do módulo (ex.: `{ accounts: [], balances: [] }`); listas novas adicionadas depois não precisam de migração.
 
 ## Estrutura no Drive
@@ -25,8 +26,9 @@ Para criar um módulo novo:
 ```
 db-vault/
   data/
-    financas.json   ← um arquivo por módulo
-  anexos/           ← arquivos (PDF, imagens) — reservado para módulos futuros
+    finance.json    ← um arquivo por módulo
+    vehicles.json
+  attachments/      ← arquivos (PDF, imagens) — reservado para módulos futuros
 ```
 
 Cada arquivo é marcado com `appProperties.vault` (`root`, `data`, `attachments`, `collection`), então o app encontra tudo por query, não por nome. Com o escopo `drive.file` o app só enxerga arquivos que ele mesmo criou.

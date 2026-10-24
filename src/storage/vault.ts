@@ -8,7 +8,7 @@ import type { DriveClient, DriveFile } from './drive'
  *   db-vault/           role=root
  *     data/             role=data
  *       <key>.json      role=collection, collection=<key>
- *     anexos/           role=attachments
+ *     attachments/      role=attachments
  *
  * Collections are fixed in code (see src/modules); each one is a single JSON file.
  */
@@ -63,7 +63,7 @@ export class Vault {
     this.rootId = first('root')?.id ?? (await this.drive.createFolder('db-vault', undefined, { vault: 'root' })).id
     this.dataId = first('data')?.id ?? (await this.drive.createFolder('data', this.rootId, { vault: 'data' })).id
     this.attachmentsId =
-      first('attachments')?.id ?? (await this.drive.createFolder('anexos', this.rootId, { vault: 'attachments' })).id
+      first('attachments')?.id ?? (await this.drive.createFolder('attachments', this.rootId, { vault: 'attachments' })).id
 
     for (const file of files) {
       const key = file.appProperties?.collection
