@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EllipsisVerticalIcon, GaugeIcon, PlusIcon } from 'lucide-react'
+import { EllipsisVerticalIcon, GaugeIcon, PaperclipIcon, PlusIcon } from 'lucide-react'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
 import {
@@ -187,7 +187,9 @@ export function VehicleDetail({ summary, vehicles }: VehicleDetailProps) {
         service={serviceDialog?.service}
         suggestedKm={currentKm?.km}
         workshops={workshops}
-        onSubmit={(input) => vehicles.saveService(vehicle.id, input, serviceDialog?.service)}
+        onSubmit={(input, newFiles, removed) =>
+          vehicles.saveService(vehicle.id, input, newFiles, removed, serviceDialog?.service)
+        }
         onDelete={(service) => setConfirm({ kind: 'service', service })}
       />
       <PolicyFormDialog
@@ -367,7 +369,12 @@ function ServicesTable({
                 <TableCell className="pl-4 text-muted-foreground tabular-nums">{formatDate(service.date)}</TableCell>
                 <TableCell className="max-w-64">
                   <div className="flex flex-col">
-                    <span className="truncate font-medium">{service.title}</span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span className="truncate">{service.title}</span>
+                      {service.attachments.length > 0 && (
+                        <PaperclipIcon className="size-3.5 shrink-0 text-muted-foreground" aria-label="Com nota fiscal" />
+                      )}
+                    </span>
                     {service.parts.length > 0 && (
                       <span className="truncate text-xs text-muted-foreground">
                         {service.parts.map((p) => (p.quantity > 1 ? `${p.quantity}× ${p.name}` : p.name)).join(', ')}

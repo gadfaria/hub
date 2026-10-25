@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Optional invoice (nota fiscal) on vehicle maintenance records: attach PDFs or photos in the service form, with a paperclip in the history table. Files go to the Drive trash when removed or when the service or vehicle is deleted.
 - App icon (white vault on black), favicon and a web app manifest.
 - Installable PWA: standalone display, iOS meta tags and a hand-written service worker that keeps the app shell (page, bundles, fonts, icons) available offline. Drive data is never cached; an offline banner explains why data doesn't load.
 - Redirect sign-in for the installed app (the Google popup is unreliable in standalone mode): full-page OAuth implicit flow with `state` verification, token removed from the URL, previous route restored, errors shown on the sign-in screen.

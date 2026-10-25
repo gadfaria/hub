@@ -54,6 +54,8 @@ export interface Service extends Syncable {
   laborCost: number
   parts: Part[]
   notes: string
+  /** Invoice (nota fiscal), receipt… Records saved before this field existed have none. */
+  attachments: Attachment[]
 }
 
 /** A standalone odometer reading, to keep the current km up to date between services. */

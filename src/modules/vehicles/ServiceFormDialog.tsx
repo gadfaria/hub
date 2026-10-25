@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { PlusIcon, XIcon } from 'lucide-react'
+import { AttachmentGrid, AttachmentPicker, PendingFileList } from '@/components/attachments'
 import { Field } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import type { Attachment } from '@/domain/types'
 import { formatMoney, formatMoneyInput, parseKm, parseMoney, today } from '@/lib/format'
 import { SERVICE_TYPES, type Service, type ServiceType } from './types'
 import type { ServiceInput } from './useVehicles'
@@ -27,7 +29,7 @@ interface ServiceFormDialogProps {
   suggestedKm?: number
   /** Workshops used before, suggested while typing. */
   workshops: string[]
-  onSubmit: (input: ServiceInput) => Promise<boolean>
+  onSubmit: (input: ServiceInput, newFiles: File[], removed: Attachment[]) => Promise<boolean>
   onDelete?: (service: Service) => void
 }
 
@@ -66,6 +68,8 @@ function ServiceForm({ service, suggestedKm, workshops, onSubmit, onOpenChange, 
       unitCost: p.unitCost ? formatMoneyInput(p.unitCost) : '',
     })),
   )
+  const [newFiles, setNewFiles] = useState<File[]>([])
+  const [removed, setRemoved] = useState<Attachment[]>([])
   const [pending, setPending] = useState(false)
 
   const parsedParts = parts
@@ -75,6 +79,7 @@ function ServiceForm({ service, suggestedKm, workshops, onSubmit, onOpenChange, 
       quantity: Math.max(1, Number(p.quantity.replace(',', '.')) || 1),
       unitCost: parseMoney(p.unitCost) ?? 0,
     }))
+  const existingFiles = (service?.attachments ?? []).filter((a) => !removed.some((r) => r.id === a.id))
   const laborCost = parseMoney(laborText) ?? 0
   const total = laborCost + parsedParts.reduce((sum, p) => sum + p.quantity * p.unitCost, 0)
   const valid = date !== '' && (title.trim() !== '' || parsedParts.length > 0)
@@ -97,7 +102,7 @@ function ServiceForm({ service, suggestedKm, workshops, onSubmit, onOpenChange, 
       laborCost,
       parts: parsedParts,
       notes: notes.trim(),
-    })
+    }, newFiles, removed)
     setPending(false)
     if (ok) onOpenChange(false)
   }
@@ -240,6 +245,24 @@ function ServiceForm({ service, suggestedKm, workshops, onSubmit, onOpenChange, 
         <Textarea id="service-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
       </Field>
 
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">
+            Nota fiscal <span className="font-normal text-muted-foreground">(opcional)</span>
+          </span>
+          <AttachmentPicker onFiles={(files) => setNewFiles((f) => [...f, ...files])} disabled={pending} />
+        </div>
+        {existingFiles.length > 0 && (
+          <AttachmentGrid attachments={existingFiles} onRemove={(a) => setRemoved((r) => [...r, a])} />
+        )}
+        {newFiles.length > 0 && (
+          <PendingFileList files={newFiles} onRemove={(i) => setNewFiles((f) => f.filter((_, j) => j !== i))} />
+        )}
+        {existingFiles.length === 0 && newFiles.length === 0 && (
+          <p className="text-sm text-muted-foreground">PDF ou foto da nota, orçamento ou recibo.</p>
+        )}
+      </div>
+
       <Separator />
 
       <DialogFooter className="items-center sm:justify-between">
@@ -254,7 +277,7 @@ function ServiceForm({ service, suggestedKm, workshops, onSubmit, onOpenChange, 
             </Button>
           )}
           <Button type="submit" disabled={pending || !valid}>
-            {pending ? 'Salvando…' : service ? 'Salvar' : 'Adicionar'}
+            {pending ? (newFiles.length ? 'Enviando…' : 'Salvando…') : service ? 'Salvar' : 'Adicionar'}
           </Button>
         </div>
       </DialogFooter>

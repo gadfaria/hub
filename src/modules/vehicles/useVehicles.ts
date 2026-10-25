@@ -17,7 +17,7 @@ import {
 const EMPTY: VehiclesData = { vehicles: [], services: [], readings: [], policies: [] }
 
 export type VehicleInput = Omit<Vehicle, keyof Syncable>
-export type ServiceInput = Omit<Service, keyof Syncable | 'vehicleId'>
+export type ServiceInput = Omit<Service, keyof Syncable | 'vehicleId' | 'attachments'>
 export type PolicyInput = Omit<InsurancePolicy, keyof Syncable | 'vehicleId' | 'attachments'>
 
 export interface VehicleSummary {
@@ -47,7 +47,11 @@ export function useVehicles() {
 
   const summaries = useMemo(() => {
     const year = today().slice(0, 4)
-    const services = (data?.services ?? []).filter((s) => !s.deleted).sort(byNewest)
+    const services = (data?.services ?? [])
+      .filter((s) => !s.deleted)
+      // Services saved before invoices existed have no attachments list.
+      .map((s) => (s.attachments ? s : { ...s, attachments: [] }))
+      .sort(byNewest)
     const readings = (data?.readings ?? []).filter((r) => !r.deleted)
     const now = today()
     const policies = (data?.policies ?? [])
@@ -102,25 +106,44 @@ export function useVehicles() {
       const mine = <T extends { vehicleId: string; deleted: boolean }>(list: T[] = []) =>
         list.filter((x) => x.vehicleId === vehicle.id && !x.deleted)
       const policies = mine(data?.policies)
+      const services = mine(data?.services)
       const ok = await save({
         vehicles: [touch(vehicle, { deleted: true })],
-        services: mine(data?.services).map((s) => touch(s, { deleted: true })),
+        services: services.map((s) => touch(s, { deleted: true })),
         readings: mine(data?.readings).map((r) => touch(r, { deleted: true })),
         policies: policies.map((p) => touch(p, { deleted: true })),
       })
-      if (ok) await attachments.trash(policies.flatMap((p) => p.attachments))
+      if (ok) {
+        await attachments.trash([...policies.flatMap((p) => p.attachments), ...services.flatMap((s) => s.attachments ?? [])])
+      }
       return ok
     },
     [save, data, attachments],
   )
 
+  /** Uploads new files first, saves the service, then trashes the files removed from it. */
   const saveService = useCallback(
-    (vehicleId: string, input: ServiceInput, existing?: Service) =>
-      save({ services: [existing ? touch(existing, input) : { ...newSyncable(), vehicleId, ...input }] }),
-    [save],
+    async (vehicleId: string, input: ServiceInput, newFiles: File[], removed: Attachment[], existing?: Service) => {
+      const uploaded = newFiles.length ? await attachments.upload(newFiles) : []
+      if (uploaded === null) return false
+      const removedIds = new Set(removed.map((a) => a.id))
+      const kept = (existing?.attachments ?? []).filter((a) => !removedIds.has(a.id))
+      const next = { ...input, attachments: [...kept, ...uploaded] }
+      const ok = await save({ services: [existing ? touch(existing, next) : { ...newSyncable(), vehicleId, ...next }] })
+      if (ok && removed.length) await attachments.trash(removed)
+      return ok
+    },
+    [save, attachments],
   )
 
-  const deleteService = useCallback((service: Service) => save({ services: [touch(service, { deleted: true })] }), [save])
+  const deleteService = useCallback(
+    async (service: Service) => {
+      const ok = await save({ services: [touch(service, { deleted: true })] })
+      if (ok) await attachments.trash(service.attachments ?? [])
+      return ok
+    },
+    [save, attachments],
+  )
 
   const addReading = useCallback(
     (vehicleId: string, km: number, date: string) => {
