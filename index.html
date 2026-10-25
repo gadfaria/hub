@@ -20,6 +20,13 @@
       const apply = () => document.documentElement.classList.toggle('dark', media.matches)
       apply()
       media.addEventListener('change', apply)
+
+      // Chrome can fire this before the app bundle runs; keep it for the "Instalar app" button (src/lib/install.ts).
+      addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault()
+        window.__installPrompt = event
+        dispatchEvent(new Event('vault:installable'))
+      })
     </script>
   </head>
   <body>
