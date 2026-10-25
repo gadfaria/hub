@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/auth/context'
 import { AppLayout } from '@/components/app-layout'
 import { MODULES } from '@/modules'
+import { useValuesHidden } from '@/lib/privacy'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { VaultProvider } from '@/storage/VaultProvider'
 
@@ -26,6 +27,8 @@ function useRoute(): string[] {
 export default function App() {
   const { session, expired } = useAuth()
   const [moduleId, ...path] = useRoute()
+  // Subscribed here so the whole tree re-renders, and every formatMoney masks or unmasks, on toggle.
+  useValuesHidden()
   if (!session || expired) return <LoginScreen />
 
   // Unknown routes (and "/") land on the first module.

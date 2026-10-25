@@ -30,6 +30,8 @@ To add a module:
 
 **Search** — ⌘K / Ctrl+K (or "Buscar" in the sidebar, the magnifier in the header on phones) searches every module at once: documents (showing their number), accounts, investments, bills, subscriptions, vehicles and their services and insurance (plate, chassis, policy number, part names), and health records. Matching ignores case and accents, and every typed word must match.
 
+**Hide values** — the eye in the header masks every amount (balances, bills, subscriptions, insurance, services) as "R$ ••••", for opening the app next to someone. It stays on until you tap it again, also after reopening the app (stored in the browser, per device).
+
 Code, file names, routes and stored values are in English; UI text is in Brazilian Portuguese.
 
 ## Drive layout

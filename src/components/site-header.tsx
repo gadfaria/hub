@@ -1,8 +1,9 @@
 import { Fragment } from "react"
-import { ChevronRightIcon, SearchIcon } from "lucide-react"
+import { ChevronRightIcon, EyeIcon, EyeOffIcon, SearchIcon } from "lucide-react"
 import { useSearch } from "@/components/search/context"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { setValuesHidden, useValuesHidden } from "@/lib/privacy"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export interface Crumb {
@@ -14,6 +15,7 @@ export interface Crumb {
 export function SiteHeader({ title, children }: { title: string | Crumb[]; children?: React.ReactNode }) {
   const crumbs = typeof title === "string" ? [{ label: title }] : title
   const search = useSearch()
+  const hidden = useValuesHidden()
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -41,6 +43,17 @@ export function SiteHeader({ title, children }: { title: string | Crumb[]; child
           {/* On phones the sidebar (and its search button) is hidden, so search lives in the header. */}
           <Button variant="ghost" size="icon" className="size-8 md:hidden" onClick={() => search.setOpen(true)} aria-label="Buscar">
             <SearchIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() => setValuesHidden(!hidden)}
+            aria-label={hidden ? "Mostrar valores" : "Ocultar valores"}
+            aria-pressed={hidden}
+            title={hidden ? "Mostrar valores" : "Ocultar valores"}
+          >
+            {hidden ? <EyeOffIcon /> : <EyeIcon />}
           </Button>
           {children}
         </div>

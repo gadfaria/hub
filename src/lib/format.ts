@@ -1,6 +1,9 @@
+import { valuesHidden } from './privacy'
+
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export function formatMoney(cents: number): string {
+  if (valuesHidden()) return 'R$ ••••'
   return brl.format(cents / 100)
 }
 
