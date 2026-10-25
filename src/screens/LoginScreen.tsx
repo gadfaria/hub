@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '@/auth/context'
-import { GOOGLE_CLIENT_ID } from '@/auth/google'
+import { GOOGLE_CLIENT_ID, takeRedirectError } from '@/auth/google'
 import { Button } from '@/components/ui/button'
 
 export function LoginScreen() {
   const { session, signIn, signOut } = useAuth()
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(takeRedirectError)
 
   async function handleSignIn() {
     setPending(true)

@@ -88,7 +88,7 @@ src/
    - Publishing to production would let any Google account sign in (each one only sees its own Drive). It also requires a home page and privacy policy on a verified domain.
 5. **Clients → Create client** → type **Web application**:
    - **Authorized JavaScript origins**: `http://localhost:5180` and the production URL.
-   - No redirect URIs needed. The client secret is not used.
+   - **Authorized redirect URIs**: the same URLs with a trailing slash (`http://localhost:5180/`, `https://<your-domain>/`), used by the installed app's sign-in. The client secret is not used.
 6. Copy the **Client ID** into `.env.local`:
 
    ```
@@ -106,9 +106,13 @@ npm run dev
 
 The dev server runs on port 5180 (fixed, since it must match the OAuth origins).
 
-## On your phone
+## Installable app (PWA)
 
-Open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Adicionar à tela inicial** (Android, Chrome). The shortcut gets the Vault icon and name and opens in the browser. It is not a PWA (no offline cache, no standalone mode).
+On the phone, open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Instalar app** (Android, Chrome). It opens full screen like an app.
+
+- **Offline app shell:** `public/sw.js` caches the page, bundles, fonts and icons, so the app opens without internet (pages network-first, hashed assets cache-first, old bundles pruned). Drive data is never cached: it needs a connection, and a banner says so when offline.
+- **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://vault.gadfaria.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
+- The service worker only registers in production builds; test it with `npm run build && npm run preview`.
 
 ## Deploy
 

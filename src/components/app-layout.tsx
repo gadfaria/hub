@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar"
+import { OfflineBanner } from "@/components/offline-banner"
 import { SearchProvider } from "@/components/search/search-provider"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
@@ -14,7 +15,10 @@ export function AppLayout({ activeId, children }: { activeId: string; children: 
     >
       <SearchProvider>
         <AppSidebar variant="inset" activeId={activeId} />
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset>
+          <OfflineBanner />
+          {children}
+        </SidebarInset>
       </SearchProvider>
     </SidebarProvider>
   )

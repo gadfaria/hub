@@ -3,9 +3,11 @@ import { AuthContext } from './context'
 import {
   clearSession,
   isExpired,
+  isStandalone,
   loadSession,
   SessionExpiredError,
   signIn as googleSignIn,
+  signInWithRedirect,
   type Session,
 } from './google'
 
@@ -21,6 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = useCallback(async () => {
+    if (isStandalone()) {
+      // The page leaves for Google; the session is picked up on return (see completeRedirectSignIn).
+      signInWithRedirect(sessionRef.current?.email)
+      return new Promise<void>(() => {})
+    }
     setSession(await googleSignIn(sessionRef.current?.email))
     setExpired(false)
   }, [setSession])

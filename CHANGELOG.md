@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- App icon (white vault on black), favicon and a web app manifest, so "Adicionar à Tela de Início" on iOS/Android creates a "Vault" shortcut with its own icon. It opens in the regular browser (not standalone) to keep the Google sign-in popup reliable.
+- App icon (white vault on black), favicon and a web app manifest.
+- Installable PWA: standalone display, iOS meta tags and a hand-written service worker that keeps the app shell (page, bundles, fonts, icons) available offline. Drive data is never cached; an offline banner explains why data doesn't load.
+- Redirect sign-in for the installed app (the Google popup is unreliable in standalone mode): full-page OAuth implicit flow with `state` verification, token removed from the URL, previous route restored, errors shown on the sign-in screen.
 - Global search (⌘K / Ctrl+K, a "Buscar" button in the sidebar and a header button on phones) across every module: documents with their number, accounts, investments, bills, subscriptions, vehicles, services (including part names), insurance policies and health records. Accent- and case-insensitive, all words must match; picking a document opens it directly (`#/documents/<id>`).
 - Investments inside Finance: applications (CDB, LCI, LCA, Tesouro, funds, stocks, crypto…) with institution, amount, rate, investment date and maturity; "Investimentos" and "Resgatados" tabs; a summary of the active amount, what matures within 30 days and the realized return; and a redemption dialog that shows the return in money, for the period and annualized. They don't add to net worth, since balances already include them.
 - Investment maturities on the Início page: in the agenda within 30 days, and in "Precisa de atenção" within a week or once matured without a redemption.
