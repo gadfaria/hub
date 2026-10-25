@@ -110,7 +110,7 @@ The dev server runs on port 5180 (fixed, since it must match the OAuth origins).
 
 ## Installable app (PWA)
 
-On the phone, open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Instalar app** (Android, Chrome). It opens full screen like an app. On Chrome/Android an **Instalar app** button also shows in the sidebar while the app can be installed (it keeps the `beforeinstallprompt` event, see `src/lib/install.ts`), for when Chrome's menu doesn't offer the option.
+On the phone, open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Instalar app** (Android, Chrome). It opens full screen like an app.
 
 - **Offline app shell:** `public/sw.js` caches the page, bundles, fonts and icons, so the app opens without internet (pages network-first, hashed assets cache-first, old bundles pruned). Drive data is never cached: it needs a connection, and a banner says so when offline.
 - **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://vault.gadfaria.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
