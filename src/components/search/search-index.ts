@@ -10,11 +10,12 @@ import {
   ReceiptTextIcon,
   RepeatIcon,
   ShieldCheckIcon,
+  UserRoundIcon,
   WrenchIcon,
 } from "lucide-react"
 import { formatDate, formatMoney } from "@/lib/format"
 import type { Bill } from "@/modules/bills/types"
-import { DOCUMENT_TYPES, documentLabel, type PersonalDocument } from "@/modules/documents/types"
+import { DOCUMENT_TYPES, documentLabel, formatAddress, type PersonalDocument, type PersonalProfile } from "@/modules/documents/types"
 import { ACCOUNT_TYPES, INVESTMENT_KINDS, accountLabel, type Investment } from "@/modules/finance/types"
 import type { InstitutionGroup } from "@/modules/finance/useFinance"
 import { ENTRY_KINDS, type HealthEntry, type HealthProfile, type Medication } from "@/modules/health/types"
@@ -39,6 +40,7 @@ export interface SearchSources {
   bills: Bill[]
   subscriptions: Subscription[]
   documents: PersonalDocument[]
+  profiles: PersonalProfile[]
   vehicles: VehicleSummary[]
   health: { profiles: HealthProfile[]; entries: HealthEntry[]; medications: Medication[] }
 }
@@ -58,6 +60,25 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
       subtitle: clean([document.number, document.issuer, document.expiryDate && `validade ${formatDate(document.expiryDate)}`]),
       keywords: [DOCUMENT_TYPES[document.type], document.number.replace(/\D/g, ""), document.notes],
       href: `#/documents/${document.id}`,
+    })
+  }
+
+  for (const profile of s.profiles) {
+    const address = formatAddress(profile)
+    items.push({
+      id: `profile-person-${profile.id}`,
+      group: "Documentos",
+      icon: UserRoundIcon,
+      title: `Dados pessoais · ${profile.person}`,
+      subtitle: clean([profile.cpf && `CPF ${profile.cpf}`, profile.city && `${profile.city}/${profile.state}`]),
+      // Labels make "cep", "passaporte", "endereço" or "mãe" find the card; values make the data itself findable.
+      keywords: [
+        "dados pessoais", "cpf", "endereço", "cep", "telefone", "e-mail", "mãe", "pai", "passaporte",
+        profile.fullName, profile.cpf, profile.cpf.replace(/\D/g, ""), address, profile.zip, profile.phone, profile.email,
+        profile.motherName, profile.fatherName, profile.passport,
+        ...profile.extras.flatMap((e) => [e.label, e.value]),
+      ],
+      href: "#/documents",
     })
   }
 

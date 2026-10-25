@@ -67,6 +67,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
         bills: bills.bills,
         subscriptions: [...subs.active, ...subs.cancelled].map((r) => r.subscription),
         documents: docs.rows.map((r) => r.document),
+        profiles: docs.profiles,
         vehicles: vehicles.summaries,
         health: health.people.reduce(
           (acc, person) => {

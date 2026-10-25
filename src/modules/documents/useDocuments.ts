@@ -4,11 +4,12 @@ import type { Attachment, Syncable } from '@/domain/types'
 import { useAttachments } from '@/storage/useAttachments'
 import { useCollection } from '@/storage/useCollection'
 import type { ExpiryStatus } from '@/lib/expiry'
-import { DOCUMENT_TYPES, expiryStatus, type DocumentsData, type PersonalDocument } from './types'
+import { DOCUMENT_TYPES, expiryStatus, type DocumentsData, type PersonalDocument, type PersonalProfile } from './types'
 
-const EMPTY: DocumentsData = { documents: [] }
+const EMPTY: DocumentsData = { documents: [], profiles: [] }
 
 export type DocumentInput = Omit<PersonalDocument, keyof Syncable | 'attachments'>
+export type ProfileInput = Omit<PersonalProfile, keyof Syncable | 'person'>
 
 export interface DocumentRow {
   document: PersonalDocument
@@ -28,8 +29,12 @@ export function useDocuments() {
           a.document.owner.localeCompare(b.document.owner) ||
           DOCUMENT_TYPES[a.document.type].localeCompare(DOCUMENT_TYPES[b.document.type]),
       )
-    const owners = [...new Set(rows.map((r) => r.document.owner.trim()).filter(Boolean))].sort()
-    return { rows, owners }
+    // Fields added after a profile was saved come back missing: default them to empty.
+    const profiles = (data?.profiles ?? []).filter((p) => !p.deleted).map((p) => ({ ...p, passport: p.passport ?? '', passportExpiry: p.passportExpiry ?? '' }))
+    const owners = [
+      ...new Set([...rows.map((r) => r.document.owner), ...profiles.map((p) => p.person)].map((o) => o.trim()).filter(Boolean)),
+    ].sort()
+    return { rows, owners, profiles }
   }, [data])
 
   const createDocument = useCallback(
@@ -75,5 +80,16 @@ export function useDocuments() {
     [save, attachments],
   )
 
-  return { loading, ...derived, createDocument, updateDocument, addAttachments, removeAttachment, deleteDocument }
+  const profileFor = useCallback(
+    (person: string) => derived.profiles.find((p) => p.person.trim() === person),
+    [derived.profiles],
+  )
+
+  const saveProfile = useCallback(
+    (person: string, input: ProfileInput, existing?: PersonalProfile) =>
+      save({ profiles: [existing ? touch(existing, input) : { ...newSyncable(), person, ...input }] }),
+    [save],
+  )
+
+  return { loading, ...derived, profileFor, saveProfile, createDocument, updateDocument, addAttachments, removeAttachment, deleteDocument }
 }

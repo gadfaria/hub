@@ -29,6 +29,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/format'
 import { DocumentDetailDialog } from './DocumentDetailDialog'
 import { DocumentFormDialog } from './DocumentFormDialog'
+import { ProfileCard } from './ProfileCard'
+import { ProfileDialog } from './ProfileDialog'
 import { ExpiryBadge } from '@/components/expiry-badge'
 import { DOCUMENT_TYPES, EXPIRING_SOON_DAYS, documentLabel, type PersonalDocument } from './types'
 import type { ModuleScreenProps } from '..'
@@ -39,7 +41,12 @@ const ALL = '__all__'
 export function DocumentsScreen({ path }: ModuleScreenProps) {
   const docs = useDocuments()
   const { session } = useAuth()
-  const [owner, setOwner] = useState(ALL)
+  const me = session?.name.split(' ')[0] ?? ''
+  // You always have a tab (for your personal data), even before adding any document.
+  const people = !me || docs.owners.includes(me) ? docs.owners : [me, ...docs.owners].sort()
+  const [chosenOwner, setOwner] = useState(me || ALL)
+  const owner = chosenOwner === ALL || people.includes(chosenOwner) ? chosenOwner : ALL
+  const [profileOpen, setProfileOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PersonalDocument | null>(null)
   const [deleting, setDeleting] = useState<PersonalDocument | null>(null)
@@ -54,7 +61,7 @@ export function DocumentsScreen({ path }: ModuleScreenProps) {
 
   const visible = owner === ALL ? docs.rows : docs.rows.filter((r) => r.document.owner.trim() === owner)
   const selected = docs.rows.find((r) => r.document.id === selectedId)?.document ?? null
-  const defaultOwner = session?.name.split(' ')[0] ?? ''
+  const defaultOwner = me
 
   return (
     <>
@@ -67,30 +74,39 @@ export function DocumentsScreen({ path }: ModuleScreenProps) {
       </SiteHeader>
 
       <PageBody>
-        <SummaryCards loading={docs.loading} rows={docs.rows} owners={docs.owners} />
+        <div className="px-4 lg:px-6">
+          <Tabs value={owner} onValueChange={setOwner}>
+            <TabsList>
+              {people.length > 1 && <TabsTrigger value={ALL}>Todos</TabsTrigger>}
+              {people.map((o) => (
+                <TabsTrigger key={o} value={o}>
+                  {o}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {owner !== ALL && (
+          <div className="px-4 lg:px-6">
+            <ProfileCard
+              loading={docs.loading}
+              person={owner}
+              profile={docs.profileFor(owner)}
+              onEdit={() => setProfileOpen(true)}
+            />
+          </div>
+        )}
+
+        <SummaryCards loading={docs.loading} rows={visible} owners={owner === ALL ? docs.owners : [owner]} />
 
         <div className="flex flex-col gap-4 px-4 lg:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {docs.owners.length > 1 ? (
-              <Tabs value={owner} onValueChange={setOwner}>
-                <TabsList>
-                  <TabsTrigger value={ALL}>Todos</TabsTrigger>
-                  {docs.owners.map((o) => (
-                    <TabsTrigger key={o} value={o}>
-                      {o}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium">Documentos</h2>
-                {!docs.loading && (
-                  <Badge variant="secondary" className="tabular-nums">
-                    {docs.rows.length}
-                  </Badge>
-                )}
-              </div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium">Documentos</h2>
+            {!docs.loading && (
+              <Badge variant="secondary" className="tabular-nums">
+                {visible.length}
+              </Badge>
             )}
           </div>
 
@@ -104,10 +120,19 @@ export function DocumentsScreen({ path }: ModuleScreenProps) {
         </div>
       </PageBody>
 
+      {owner !== ALL && (
+        <ProfileDialog
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          person={owner}
+          profile={docs.profileFor(owner)}
+          onSubmit={(input) => docs.saveProfile(owner, input, docs.profileFor(owner))}
+        />
+      )}
       <DocumentFormDialog
         open={creating}
         onOpenChange={setCreating}
-        owners={docs.owners}
+        owners={people}
         defaultOwner={owner === ALL ? defaultOwner : owner}
         onSubmit={docs.createDocument}
       />
@@ -115,7 +140,7 @@ export function DocumentsScreen({ path }: ModuleScreenProps) {
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
         document={editing ?? undefined}
-        owners={docs.owners}
+        owners={people}
         defaultOwner={defaultOwner}
         onSubmit={(input) => (editing ? docs.updateDocument(editing, input) : Promise.resolve(false))}
       />
