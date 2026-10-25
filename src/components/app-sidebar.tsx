@@ -1,5 +1,5 @@
 import * as React from "react"
-import { DatabaseBackupIcon, SearchIcon, VaultIcon } from "lucide-react"
+import { DatabaseBackupIcon, DownloadIcon, SearchIcon, VaultIcon } from "lucide-react"
 
 import { BackupDialog } from "@/components/backup-dialog"
 import { NavMain } from "@/components/nav-main"
@@ -14,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { promptInstall, useCanInstall } from "@/lib/install"
 import { MODULES } from "@/modules"
 
 export function AppSidebar({
@@ -22,6 +23,7 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & { activeId: string }) {
   const [backupOpen, setBackupOpen] = React.useState(false)
   const search = useSearch()
+  const canInstall = useCanInstall()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -65,6 +67,14 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          {canInstall && (
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Instalar app" onClick={() => void promptInstall()}>
+                <DownloadIcon />
+                <span>Instalar app</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Backup" onClick={() => setBackupOpen(true)}>
               <DatabaseBackupIcon />
