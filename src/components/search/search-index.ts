@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 import {
+  BellIcon,
   CarIcon,
   FileTextIcon,
   HeartPulseIcon,
@@ -19,6 +20,7 @@ import { DOCUMENT_TYPES, documentLabel, formatAddress, type PersonalDocument, ty
 import { ACCOUNT_TYPES, INVESTMENT_KINDS, accountLabel, type Investment } from "@/modules/finance/types"
 import type { InstitutionGroup } from "@/modules/finance/useFinance"
 import { ENTRY_KINDS, type HealthEntry, type HealthProfile, type Medication } from "@/modules/health/types"
+import { scheduleLabel as reminderSchedule, type Reminder } from "@/modules/reminders/types"
 import { CYCLES, categoryLabel, type Subscription } from "@/modules/subscriptions/types"
 import { SERVICE_TYPES, vehicleLabel } from "@/modules/vehicles/types"
 import type { VehicleSummary } from "@/modules/vehicles/useVehicles"
@@ -38,6 +40,7 @@ export interface SearchSources {
   accountGroups: InstitutionGroup[]
   investments: Investment[]
   bills: Bill[]
+  reminders: Reminder[]
   subscriptions: Subscription[]
   documents: PersonalDocument[]
   profiles: PersonalProfile[]
@@ -122,6 +125,18 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
       subtitle: clean([scheduleLabel(bill), bill.estimate ? `~${formatMoney(bill.estimate)}` : undefined, bill.endMonth && billFrequency(bill) !== "once" && "encerrada"]),
       keywords: [bill.notes, "conta"],
       href: "#/bills",
+    })
+  }
+
+  for (const reminder of s.reminders) {
+    items.push({
+      id: `reminder-${reminder.id}`,
+      group: "Lembretes",
+      icon: BellIcon,
+      title: reminder.title,
+      subtitle: clean([reminderSchedule(reminder), reminder.endedAt && "encerrado"]),
+      keywords: [reminder.notes, "lembrete"],
+      href: "#/reminders",
     })
   }
 

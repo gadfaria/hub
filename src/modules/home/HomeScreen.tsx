@@ -1,8 +1,10 @@
-import { CheckCircle2Icon, ChevronRightIcon } from 'lucide-react'
+import { CheckCircle2Icon, CheckIcon, ChevronRightIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { currentMonth, daysUntil, formatDate, formatMoney, shiftMonth, today } from '@/lib/format'
@@ -10,6 +12,7 @@ import { useBills } from '@/modules/bills/useBills'
 import { useDocuments } from '@/modules/documents/useDocuments'
 import { useFinance } from '@/modules/finance/useFinance'
 import { useHealth } from '@/modules/health/useHealth'
+import { useReminders, type ReminderRow } from '@/modules/reminders/useReminders'
 import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions'
 import { useVehicles } from '@/modules/vehicles/useVehicles'
 import { AGENDA_DAYS, byUrgency, collectEvents, type HomeEvent, type Severity } from './events'
@@ -37,7 +40,14 @@ export function HomeScreen() {
   const docs = useDocuments()
   const health = useHealth()
   const vehicles = useVehicles()
-  const loading = finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading
+  const reminders = useReminders()
+  const loading =
+    finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading || reminders.loading
+
+  async function completeReminder(row: ReminderRow) {
+    const done = await reminders.complete(row)
+    if (done) toast.success(`${row.reminder.title}: feito`, { action: { label: 'Desfazer', onClick: () => reminders.undoOccurrence(done) } })
+  }
 
   const month = currentMonth()
   const billRows = bills.monthRows(month)
@@ -53,6 +63,8 @@ export function HomeScreen() {
         vehicles: vehicles.summaries,
         balancesUpdatedAt: finance.lastUpdate,
         investments: finance.activeInvestments,
+        reminders: reminders.active,
+        completeReminder,
       })
 
   const attention = events.filter((e) => e.attention).sort(byUrgency)
@@ -142,7 +154,7 @@ export function HomeScreen() {
           <Card>
             <CardHeader>
               <CardTitle>Próximos {AGENDA_DAYS} dias</CardTitle>
-              <CardDescription>Vencimentos, cobranças e retornos</CardDescription>
+              <CardDescription>Vencimentos, cobranças, retornos e lembretes</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -169,8 +181,8 @@ const DOT: Record<Severity, string> = {
 function EventRow({ event, trailing }: { event: HomeEvent; trailing?: string }) {
   const Icon = event.icon
   return (
-    <li>
-      <a href={event.href} className="group flex items-center gap-3 py-2.5 first:pt-0">
+    <li className="flex items-center gap-1 py-2.5 first:pt-0">
+      <a href={event.href} className="group flex min-w-0 flex-1 items-center gap-3">
         <span className="relative flex size-8 shrink-0 items-center justify-center rounded-md border">
           <Icon className="size-4 text-muted-foreground" />
           <span className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${DOT[event.severity]}`} />
@@ -184,6 +196,12 @@ function EventRow({ event, trailing }: { event: HomeEvent; trailing?: string }) 
         {trailing && <span className="shrink-0 text-xs text-muted-foreground">{trailing}</span>}
         <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
       </a>
+      {event.onComplete && (
+        <Button variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground" onClick={event.onComplete}>
+          <CheckIcon />
+          <span className="sr-only">Concluir</span>
+        </Button>
+      )}
     </li>
   )
 }

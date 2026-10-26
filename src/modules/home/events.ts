@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
-import { CarIcon, HeartPulseIcon, IdCardIcon, LandmarkIcon, PiggyBankIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
+import { BellIcon, CarIcon, HeartPulseIcon, IdCardIcon, LandmarkIcon, PiggyBankIcon, ReceiptTextIcon, RepeatIcon } from 'lucide-react'
 import { daysUntil, formatDate, formatMoney } from '@/lib/format'
 import type { MonthRow } from '@/modules/bills/useBills'
 import { documentLabel } from '@/modules/documents/types'
 import type { DocumentRow } from '@/modules/documents/useDocuments'
 import type { Investment } from '@/modules/finance/types'
 import { ENTRY_KINDS, type HealthEntry } from '@/modules/health/types'
+import { scheduleLabel } from '@/modules/reminders/types'
+import type { ReminderRow } from '@/modules/reminders/useReminders'
 import type { SubscriptionRow } from '@/modules/subscriptions/useSubscriptions'
 import { policyStatus, vehicleLabel } from '@/modules/vehicles/types'
 import type { VehicleSummary } from '@/modules/vehicles/useVehicles'
@@ -26,6 +28,8 @@ export interface HomeEvent {
   href: string
   /** Shown in "Precisa de atenção" (otherwise only in the agenda) */
   attention: boolean
+  /** Marks it done right from the list (reminders) */
+  onComplete?: () => void
 }
 
 /** Agenda horizon and how close something must be to need attention. */
@@ -42,6 +46,8 @@ export interface EventSources {
   balancesUpdatedAt: string | undefined
   /** Active (not redeemed) investments */
   investments: Investment[]
+  reminders: ReminderRow[]
+  completeReminder: (row: ReminderRow) => void
 }
 
 export function collectEvents(sources: EventSources): HomeEvent[] {
@@ -62,6 +68,24 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       meta: row.amount ? formatMoney(row.amount) : '',
       href: '#/bills',
       attention: row.status === 'overdue' || days <= SOON_DAYS,
+    })
+  }
+
+  for (const row of sources.reminders) {
+    const days = daysUntil(row.due)
+    if (days > AGENDA_DAYS) continue
+    const attention = days <= row.reminder.leadDays
+    events.push({
+      id: `reminder-${row.reminder.id}-${row.date}`,
+      icon: BellIcon,
+      severity: row.status === 'overdue' ? 'danger' : row.status === 'today' || attention ? 'warning' : 'info',
+      date: row.due,
+      title: `${row.status === 'overdue' ? 'Lembrete atrasado' : 'Lembrete'}: ${row.reminder.title}`,
+      detail: scheduleLabel(row.reminder),
+      meta: '',
+      href: '#/reminders',
+      attention,
+      onComplete: () => sources.completeReminder(row),
     })
   }
 

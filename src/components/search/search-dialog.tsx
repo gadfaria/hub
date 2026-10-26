@@ -14,6 +14,7 @@ import { useBills } from "@/modules/bills/useBills"
 import { useDocuments } from "@/modules/documents/useDocuments"
 import { useFinance } from "@/modules/finance/useFinance"
 import { useHealth } from "@/modules/health/useHealth"
+import { useReminders } from "@/modules/reminders/useReminders"
 import { useSubscriptions } from "@/modules/subscriptions/useSubscriptions"
 import { useVehicles } from "@/modules/vehicles/useVehicles"
 import { buildSearchIndex, normalize, type SearchItem } from "./search-index"
@@ -57,7 +58,9 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
   const docs = useDocuments()
   const health = useHealth()
   const vehicles = useVehicles()
-  const loading = finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading
+  const reminders = useReminders()
+  const loading =
+    finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading || reminders.loading
 
   const items = loading
     ? []
@@ -65,6 +68,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
         accountGroups: finance.groups,
         investments: [...finance.activeInvestments, ...finance.redeemedInvestments],
         bills: bills.bills,
+        reminders: reminders.all,
         subscriptions: [...subs.active, ...subs.cancelled].map((r) => r.subscription),
         documents: docs.rows.map((r) => r.document),
         profiles: docs.profiles,

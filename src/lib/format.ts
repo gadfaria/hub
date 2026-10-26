@@ -60,6 +60,13 @@ export function endOfPreviousMonth(): string {
   return toIsoDate(new Date(now.getFullYear(), now.getMonth(), 0))
 }
 
+/** Adds days to a YYYY-MM-DD date (negative to go back). */
+export function addDays(isoDate: string, days: number): string {
+  const date = parseDate(isoDate)
+  date.setDate(date.getDate() + days)
+  return toIsoDate(date)
+}
+
 /** Adds months to a YYYY-MM-DD date, clamping to the month's last day (Jan 31 + 1 → Feb 28). */
 export function addMonths(isoDate: string, months: number): string {
   const [year, month, day] = isoDate.split('-').map(Number)

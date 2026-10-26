@@ -5,6 +5,7 @@ import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
 import { home } from './home'
+import { reminders } from './reminders'
 import { subscriptions } from './subscriptions'
 import { vehicles } from './vehicles'
 
@@ -25,4 +26,4 @@ export interface VaultModule {
  * Every area of the vault, in sidebar order; the first one is the landing page.
  * To add one, create src/modules/<id>/ and register it here.
  */
-export const MODULES: VaultModule[] = [home, finance, bills, subscriptions, vehicles, documents, health]
+export const MODULES: VaultModule[] = [home, reminders, finance, bills, subscriptions, vehicles, documents, health]
