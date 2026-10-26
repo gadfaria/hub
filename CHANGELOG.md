@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Bill frequency: besides monthly, bills can be bimonthly, quarterly, semiannual, yearly (IPTU, IPVA…) or one-off ("Avulsa"). They show up only in their due months, counted from the first one; existing bills stay monthly. The schedule (e.g. "trimestral · dia 10 (jan, abr, jul, out)") shows in the history dialog and search, and the history chart covers the last 12 due dates.
 - Hide values: an eye button in the header masks every amount across modules as "R$ ••••" and remembers the choice on the device.
 - Personal data card in Documents, per person: identification (full name, CPF, birth date and place, parents, marital status, nationality, passport with expiry), address and contact, custom fields and notes. Every field has a copy button, the address can be copied as a single formatted line, empty sections are hidden, and the data is indexed by the global search. Person tabs now default to you.
 - Optional invoice (nota fiscal) on vehicle maintenance records: attach PDFs or photos in the service form, with a paperclip in the history table. Files go to the Drive trash when removed or when the service or vehicle is deleted.

@@ -28,7 +28,7 @@ import { currentMonth, daysUntil, formatDate, formatMonth, formatMoney, shiftMon
 import { BillFormDialog } from './BillFormDialog'
 import { BillHistoryDialog } from './BillHistoryDialog'
 import { PaymentDialog } from './PaymentDialog'
-import { BILL_CATEGORIES, BILL_STATUS_LABELS, PAYMENT_METHODS, type Bill, type BillStatus } from './types'
+import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, FREQUENCIES, PAYMENT_METHODS, type Bill, type BillStatus } from './types'
 import { useBills, type MonthRow } from './useBills'
 
 type Confirm = { kind: 'end' | 'delete'; bill: Bill }
@@ -303,6 +303,7 @@ function BillsTable({
                     <span className="truncate font-medium">{row.bill.name}</span>
                     <span className="truncate text-xs text-muted-foreground">
                       {BILL_CATEGORIES[row.bill.category]} · {PAYMENT_METHODS[row.bill.paymentMethod]}
+                      {billFrequency(row.bill) !== 'monthly' && ` · ${FREQUENCIES[billFrequency(row.bill)].label.toLowerCase()}`}
                     </span>
                   </div>
                 </TableCell>

@@ -14,7 +14,7 @@ import {
   WrenchIcon,
 } from "lucide-react"
 import { formatDate, formatMoney } from "@/lib/format"
-import type { Bill } from "@/modules/bills/types"
+import { billFrequency, scheduleLabel, type Bill } from "@/modules/bills/types"
 import { DOCUMENT_TYPES, documentLabel, formatAddress, type PersonalDocument, type PersonalProfile } from "@/modules/documents/types"
 import { ACCOUNT_TYPES, INVESTMENT_KINDS, accountLabel, type Investment } from "@/modules/finance/types"
 import type { InstitutionGroup } from "@/modules/finance/useFinance"
@@ -119,7 +119,7 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
       group: "Contas",
       icon: ReceiptTextIcon,
       title: bill.name,
-      subtitle: clean([`vence dia ${bill.dueDay}`, bill.estimate ? `~${formatMoney(bill.estimate)}` : undefined, bill.endMonth && "encerrada"]),
+      subtitle: clean([scheduleLabel(bill), bill.estimate ? `~${formatMoney(bill.estimate)}` : undefined, bill.endMonth && billFrequency(bill) !== "once" && "encerrada"]),
       keywords: [bill.notes, "conta"],
       href: "#/bills",
     })

@@ -4,7 +4,7 @@ import type { Attachment, Syncable } from '@/domain/types'
 import { dayOfMonth, shiftMonth, today } from '@/lib/format'
 import { useAttachments } from '@/storage/useAttachments'
 import { useCollection } from '@/storage/useCollection'
-import type { Bill, BillPayment, BillsData, BillStatus } from './types'
+import { billFrequency, FREQUENCIES, isDueIn, type Bill, type BillPayment, type BillsData, type BillStatus } from './types'
 
 const EMPTY: BillsData = { bills: [], payments: [] }
 
@@ -27,8 +27,13 @@ export interface HistoryPoint {
   amount: number | null
 }
 
-function isActiveIn(bill: Bill, month: string): boolean {
-  return bill.startMonth <= month && (!bill.endMonth || month <= bill.endMonth)
+/** Up to `count` months the bill was due in, up to `upTo`, oldest first. */
+function dueMonths(bill: Bill, upTo: string, count: number): string[] {
+  const months: string[] = []
+  for (let month = upTo; month >= bill.startMonth && months.length < count; month = shiftMonth(month, -1)) {
+    if (isDueIn(bill, month)) months.unshift(month)
+  }
+  return months
 }
 
 export function useBills() {
@@ -56,7 +61,7 @@ export function useBills() {
     (month: string): MonthRow[] => {
       const now = today()
       return live.bills
-        .filter((bill) => isActiveIn(bill, month))
+        .filter((bill) => isDueIn(bill, month))
         .map((bill) => {
           const payment = paymentFor(bill.id, month)
           const dueDate = payment?.dueDate || dayOfMonth(month, bill.dueDay)
@@ -75,13 +80,18 @@ export function useBills() {
     [live, paymentFor],
   )
 
-  /** The last `months` months of a bill, oldest first, null where nothing was entered. */
+  /**
+   * A monthly bill's last `count` months, or the last `count` due months of a less frequent one,
+   * oldest first, null where nothing was entered.
+   */
   const history = useCallback(
-    (bill: Bill, upTo: string, months = 12): HistoryPoint[] =>
-      Array.from({ length: months }, (_, i) => {
-        const month = shiftMonth(upTo, i - months + 1)
-        return { month, amount: paymentFor(bill.id, month)?.amount ?? null }
-      }),
+    (bill: Bill, upTo: string, count = 12): HistoryPoint[] => {
+      const months =
+        FREQUENCIES[billFrequency(bill)].months === 1
+          ? Array.from({ length: count }, (_, i) => shiftMonth(upTo, i - count + 1))
+          : dueMonths(bill, upTo, count)
+      return months.map((month) => ({ month, amount: paymentFor(bill.id, month)?.amount ?? null }))
+    },
     [paymentFor],
   )
 

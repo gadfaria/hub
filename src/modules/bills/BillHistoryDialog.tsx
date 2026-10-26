@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate, formatMonth, formatMoney } from '@/lib/format'
-import { BILL_CATEGORIES, PAYMENT_METHODS, type Bill } from './types'
+import { BILL_CATEGORIES, billFrequency, PAYMENT_METHODS, scheduleLabel, type Bill } from './types'
 import type { HistoryPoint } from './useBills'
 
 const chartConfig = {
@@ -25,6 +25,7 @@ export function BillHistoryDialog({ bill, history, onClose, onEdit, onEnd }: Bil
     (max, p) => (!max || p.amount > max.amount ? p : max),
     undefined,
   )
+  const monthly = bill ? billFrequency(bill) === 'monthly' : true
   const data = history.map((p) => ({ month: p.month, value: p.amount === null ? null : p.amount / 100 }))
 
   return (
@@ -34,13 +35,13 @@ export function BillHistoryDialog({ bill, history, onClose, onEdit, onEnd }: Bil
           <div className="flex flex-col gap-6">
             <DialogHeader>
               <DialogDescription>
-                {BILL_CATEGORIES[bill.category]} · {PAYMENT_METHODS[bill.paymentMethod]} · vence dia {bill.dueDay}
+                {BILL_CATEGORIES[bill.category]} · {PAYMENT_METHODS[bill.paymentMethod]} · {scheduleLabel(bill)}
               </DialogDescription>
               <DialogTitle>{bill.name}</DialogTitle>
             </DialogHeader>
 
             <dl className="grid grid-cols-3 gap-4 text-sm">
-              <Stat label="Média (12 meses)" value={entered.length ? formatMoney(average) : '—'} />
+              <Stat label={monthly ? 'Média (12 meses)' : `Média (últimas ${history.length})`} value={entered.length ? formatMoney(average) : '—'} />
               <Stat
                 label="Maior valor"
                 value={highest ? formatMoney(highest.amount) : '—'}
@@ -51,7 +52,7 @@ export function BillHistoryDialog({ bill, history, onClose, onEdit, onEnd }: Bil
 
             {entered.length === 0 ? (
               <p className="rounded-lg border border-dashed py-10 text-center text-sm text-muted-foreground">
-                Lance os valores mês a mês para ver o histórico aqui.
+                {monthly ? 'Lance os valores mês a mês para ver o histórico aqui.' : 'Lance os valores de cada vencimento para ver o histórico aqui.'}
               </p>
             ) : (
               <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full">
@@ -63,7 +64,7 @@ export function BillHistoryDialog({ bill, history, onClose, onEdit, onEnd }: Bil
                     axisLine={false}
                     tickMargin={8}
                     interval={0}
-                    tickFormatter={(value: string) => formatMonth(value, true).split('/')[0]}
+                    tickFormatter={(value: string) => (monthly ? formatMonth(value, true).split('/')[0] : formatMonth(value, true))}
                   />
                   <ChartTooltip
                     cursor={false}
@@ -94,11 +95,11 @@ export function BillHistoryDialog({ bill, history, onClose, onEdit, onEnd }: Bil
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
               <span>
                 Desde {formatMonth(bill.startMonth)}
-                {bill.endMonth && ` até ${formatMonth(bill.endMonth)}`}
+                {bill.endMonth && bill.endMonth !== bill.startMonth && ` até ${formatMonth(bill.endMonth)}`}
                 {' · '}criada em {formatDate(bill.createdAt.slice(0, 10))}
               </span>
               <div className="flex gap-2">
-                {!bill.endMonth && (
+                {!bill.endMonth && billFrequency(bill) !== 'once' && (
                   <Button variant="ghost" size="sm" onClick={() => onEnd(bill)}>
                     Encerrar conta
                   </Button>

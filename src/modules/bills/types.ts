@@ -1,4 +1,5 @@
 import type { Attachment, Syncable } from '@/domain/types'
+import { dayOfMonth, parseDate } from '@/lib/format'
 
 export const BILL_CATEGORIES = {
   rent: 'Aluguel',
@@ -24,16 +25,30 @@ export const PAYMENT_METHODS = {
 
 export type PaymentMethod = keyof typeof PAYMENT_METHODS
 
-/** A bill that comes every month with a varying amount. */
+/** How often a bill comes and how many months apart (0: only once, in its start month). */
+export const FREQUENCIES = {
+  monthly: { label: 'Mensal', months: 1 },
+  bimonthly: { label: 'Bimestral', months: 2 },
+  quarterly: { label: 'Trimestral', months: 3 },
+  semiannual: { label: 'Semestral', months: 6 },
+  yearly: { label: 'Anual', months: 12 },
+  once: { label: 'Avulsa', months: 0 },
+} as const
+
+export type BillFrequency = keyof typeof FREQUENCIES
+
+/** A bill with a varying amount, due every month, every few months or just once. */
 export interface Bill extends Syncable {
   name: string
   category: BillCategory
+  /** Missing on bills saved before frequencies existed, which are monthly */
+  frequency?: BillFrequency
   /** Day of the month it is due (clamped to short months) */
   dueDay: number
   paymentMethod: PaymentMethod
   /** Expected amount in cents, used until the real one is entered */
   estimate: number
-  /** First month it applies to, YYYY-MM (earlier months don't list it) */
+  /** First month it applies to, YYYY-MM (earlier months don't list it). Later ones repeat every cycle from it. */
   startMonth: string
   /** Last month it applies to, YYYY-MM, or empty while active */
   endMonth: string
@@ -58,6 +73,39 @@ export interface BillPayment extends Syncable {
 export type BillsData = {
   bills: Bill[]
   payments: BillPayment[]
+}
+
+export function billFrequency(bill: Pick<Bill, 'frequency'>): BillFrequency {
+  return bill.frequency ?? 'monthly'
+}
+
+/** Whether the bill is due in a YYYY-MM month. */
+export function isDueIn(bill: Pick<Bill, 'frequency' | 'startMonth' | 'endMonth'>, month: string): boolean {
+  if (month < bill.startMonth || (bill.endMonth && month > bill.endMonth)) return false
+  const step = FREQUENCIES[billFrequency(bill)].months
+  if (step === 0) return month === bill.startMonth
+  return monthsBetween(bill.startMonth, month) % step === 0
+}
+
+function monthsBetween(from: string, to: string): number {
+  const [fy, fm] = from.split('-').map(Number)
+  const [ty, tm] = to.split('-').map(Number)
+  return (ty - fy) * 12 + (tm - fm)
+}
+
+/** "vence dia 10"; "trimestral · dia 10 (jan, abr, jul, out)"; "anual · 10 de março"; "avulsa · 10/03/2027" */
+export function scheduleLabel(bill: Pick<Bill, 'frequency' | 'dueDay' | 'startMonth'>): string {
+  const frequency = billFrequency(bill)
+  if (frequency === 'monthly') return `vence dia ${bill.dueDay}`
+  const label = FREQUENCIES[frequency].label.toLowerCase()
+  const first = parseDate(dayOfMonth(bill.startMonth, bill.dueDay))
+  if (frequency === 'once') return `${label} · ${first.toLocaleDateString('pt-BR')}`
+  if (frequency === 'yearly') return `${label} · ${first.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}`
+  const step = FREQUENCIES[frequency].months
+  const months = Array.from({ length: 12 / step }, (_, i) =>
+    new Date(2000, (first.getMonth() + i * step) % 12, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+  )
+  return `${label} · dia ${bill.dueDay} (${months.join(', ')})`
 }
 
 export type BillStatus = 'paid' | 'pending' | 'overdue'

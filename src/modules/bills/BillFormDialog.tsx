@@ -13,7 +13,16 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { currentMonth, formatMoneyInput, parseMoney } from '@/lib/format'
-import { BILL_CATEGORIES, PAYMENT_METHODS, type Bill, type BillCategory, type PaymentMethod } from './types'
+import {
+  BILL_CATEGORIES,
+  billFrequency,
+  FREQUENCIES,
+  PAYMENT_METHODS,
+  type Bill,
+  type BillCategory,
+  type BillFrequency,
+  type PaymentMethod,
+} from './types'
 import type { BillInput } from './useBills'
 
 interface BillFormDialogProps {
@@ -37,6 +46,7 @@ export function BillFormDialog(props: BillFormDialogProps) {
 function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProps) {
   const [name, setName] = useState(bill?.name ?? '')
   const [category, setCategory] = useState<BillCategory>(bill?.category ?? 'electricity')
+  const [frequency, setFrequency] = useState<BillFrequency>(bill ? billFrequency(bill) : 'monthly')
   const [dueDay, setDueDay] = useState(String(bill?.dueDay ?? 10))
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(bill?.paymentMethod ?? 'boleto')
   const [estimate, setEstimate] = useState(bill?.estimate ? formatMoneyInput(bill.estimate) : '')
@@ -54,11 +64,13 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
     const ok = await onSubmit({
       name: name.trim(),
       category,
+      frequency,
       dueDay: day,
       paymentMethod,
       estimate: parseMoney(estimate) ?? 0,
       startMonth,
-      endMonth: bill?.endMonth ?? '',
+      // A one-off bill ends in its own month; turning it into a recurring one reopens it.
+      endMonth: frequency === 'once' ? startMonth : bill && billFrequency(bill) !== 'once' ? bill.endMonth : '',
       notes: notes.trim(),
     })
     setPending(false)
@@ -69,7 +81,9 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <DialogHeader>
         <DialogTitle>{bill ? 'Editar conta' : 'Nova conta'}</DialogTitle>
-        <DialogDescription>Contas que chegam todo mês com valor diferente: luz, água, aluguel, fatura…</DialogDescription>
+        <DialogDescription>
+          Contas com valor que muda: luz, água, aluguel, fatura… Todo mês, de tempos em tempos (IPTU, IPVA) ou uma vez só.
+        </DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-2 gap-4">
@@ -104,6 +118,20 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
             </SelectContent>
           </Select>
         </Field>
+        <Field label="Frequência" id="bill-frequency">
+          <Select value={frequency} onValueChange={(v) => setFrequency(v as BillFrequency)}>
+            <SelectTrigger id="bill-frequency" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(FREQUENCIES).map(([value, { label }]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
         <Field label="Dia do vencimento" id="bill-day">
           <Input
             id="bill-day"
@@ -123,7 +151,10 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
             className="tabular-nums"
           />
         </Field>
-        <Field label="A partir de" id="bill-start">
+        <Field
+          label={frequency === 'monthly' ? 'A partir de' : frequency === 'once' ? 'Mês do vencimento' : 'Primeiro vencimento'}
+          id="bill-start"
+        >
           <Input id="bill-start" type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
         </Field>
         <Field label="Observações" optional id="bill-notes" className="col-span-2">
