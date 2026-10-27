@@ -152,7 +152,7 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
         subscription.cancelledAt && "cancelada",
       ]),
       keywords: [categoryLabel(subscription.category), subscription.notes, "assinatura"],
-      href: "#/subscriptions",
+      href: "#/bills/subscriptions",
     })
   }
 

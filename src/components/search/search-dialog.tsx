@@ -9,7 +9,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { MODULES } from "@/modules"
+import { MODULES, SUB_PAGES } from "@/modules"
 import { useBills } from "@/modules/bills/useBills"
 import { useDocuments } from "@/modules/documents/useDocuments"
 import { useFinance } from "@/modules/finance/useFinance"
@@ -119,6 +119,17 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
             >
               <module.icon />
               {module.name}
+            </CommandItem>
+          ))}
+          {SUB_PAGES.map((page) => (
+            <CommandItem
+              key={page.href}
+              value={`page-${page.collection} ${page.name}`}
+              keywords={["ir para", "página"]}
+              onSelect={() => go(page.href)}
+            >
+              <page.icon />
+              {page.name}
             </CommandItem>
           ))}
         </CommandGroup>

@@ -47,7 +47,8 @@ function inDays(isoDate: string): string {
   return `em ${days} dias`
 }
 
-export function SubscriptionsScreen() {
+/** `nav` is the Contas | Assinaturas switcher, shown above the page content. */
+export function SubscriptionsScreen({ nav }: { nav?: React.ReactNode }) {
   const subs = useSubscriptions()
   const [view, setView] = useState<'active' | 'cancelled'>('active')
   const [dialog, setDialog] = useState<{ subscription?: Subscription } | null>(null)
@@ -57,7 +58,7 @@ export function SubscriptionsScreen() {
 
   return (
     <>
-      <SiteHeader title="Assinaturas">
+      <SiteHeader title={[{ label: 'Contas', href: '#/bills' }, { label: 'Assinaturas' }]}>
         <Button size="sm" onClick={() => setDialog({})} disabled={subs.loading}>
           <PlusIcon />
           <span className="hidden sm:inline">Nova assinatura</span>
@@ -66,6 +67,7 @@ export function SubscriptionsScreen() {
       </SiteHeader>
 
       <PageBody>
+        {nav}
         <SummaryCards loading={subs.loading} active={subs.active} monthlyTotal={subs.monthlyTotal} />
 
         <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @5xl/main:grid-cols-[1fr_2fr]">

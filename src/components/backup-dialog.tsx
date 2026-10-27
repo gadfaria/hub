@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SCHEMA_VERSION } from "@/domain/types"
 import { today } from "@/lib/format"
-import { MODULES } from "@/modules"
+import { MODULES, SUB_PAGES } from "@/modules"
 import { useVaultContext } from "@/storage/context"
 import type { BackupInfo } from "@/storage/vault"
 
@@ -40,7 +40,7 @@ function ago(createdTime: string): string {
 }
 
 function moduleNames(keys: string[]): string {
-  return keys.map((key) => MODULES.find((m) => m.id === key)?.name ?? key).join(", ")
+  return keys.map((key) => MODULES.find((m) => m.id === key)?.name ?? SUB_PAGES.find((p) => p.collection === key)?.name ?? key).join(", ")
 }
 
 /** What a restore will apply, once read from a Drive backup or an uploaded file. */

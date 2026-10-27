@@ -99,7 +99,7 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       title: `Cobrança: ${subscription.name}`,
       detail: `${formatMoney(subscription.amount)}${subscription.paymentMethod ? ` · ${subscription.paymentMethod}` : ''}`,
       meta: formatMoney(subscription.amount),
-      href: '#/subscriptions',
+      href: '#/bills/subscriptions',
       attention: false,
     })
   }

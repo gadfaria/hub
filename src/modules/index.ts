@@ -1,12 +1,11 @@
 import type { ComponentType } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import { RepeatIcon, type LucideIcon } from 'lucide-react'
 import { bills } from './bills'
 import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
 import { home } from './home'
 import { reminders } from './reminders'
-import { subscriptions } from './subscriptions'
 import { vehicles } from './vehicles'
 
 export interface ModuleScreenProps {
@@ -26,4 +25,17 @@ export interface VaultModule {
  * Every area of the vault, in sidebar order; the first one is the landing page.
  * To add one, create src/modules/<id>/ and register it here.
  */
-export const MODULES: VaultModule[] = [home, reminders, finance, bills, subscriptions, vehicles, documents, health]
+export const MODULES: VaultModule[] = [home, reminders, finance, bills, vehicles, documents, health]
+
+/** A page inside a module that keeps its own collection file, e.g. Assinaturas under Contas. */
+export interface SubPage {
+  name: string
+  href: string
+  icon: LucideIcon
+  /** Its data/<collection>.json, named in backups */
+  collection: string
+}
+
+export const SUB_PAGES: SubPage[] = [
+  { name: 'Assinaturas', href: '#/bills/subscriptions', icon: RepeatIcon, collection: 'subscriptions' },
+]

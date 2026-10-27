@@ -45,7 +45,8 @@ function StatusBadge({ status }: { status: BillStatus }) {
   return <Badge variant="secondary">{BILL_STATUS_LABELS.pending}</Badge>
 }
 
-export function BillsScreen() {
+/** `nav` is the Contas | Assinaturas switcher, shown above the page content. */
+export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
   const bills = useBills()
   const [month, setMonth] = useState(currentMonth)
   const [billDialog, setBillDialog] = useState<{ bill?: Bill } | null>(null)
@@ -67,6 +68,7 @@ export function BillsScreen() {
       </SiteHeader>
 
       <PageBody>
+        {nav}
         <div className="flex items-center gap-2 px-4 lg:px-6">
           <Button variant="outline" size="icon" className="size-8" onClick={() => setMonth((m) => shiftMonth(m, -1))} aria-label="Mês anterior">
             <ChevronLeftIcon />

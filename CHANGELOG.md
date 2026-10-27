@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Unused Vite template assets (`icons.svg`, Vite favicon).
 
 ### Changed
+- Assinaturas moved into Contas as a second tab (Contas | Assinaturas, `#/bills/subscriptions`), one sidebar entry less. Data stays in its own file; search and backups still list it as Assinaturas.
 - Subscriptions no longer offer the "Casa (luz, água, gás)" category; those bills belong in Contas. Existing entries with it show as "Outros".
 - README rewritten in English, with the Google Cloud setup matching the current configuration (Testing mode with test users).
 - Shared `Field` form component moved to `src/components/form-field.tsx`.
