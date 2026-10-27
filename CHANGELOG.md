@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Cartões tab inside Contas: credit cards with bank, last 4 digits, limit, closing and due day; the month's statement (pay, enter, history) and the subscriptions charged to each card with their monthly total. Cards are bills, so statements show in Contas and Início. Subscriptions pick the card from a list (or "Outra forma").
 - **Reminders** module for things that aren't bills: one-time or repeating daily, weekly (chosen weekdays), monthly or yearly, every N units, from a start date. Per-occurrence done (with an undo toast) and snooze by a day or a week, a heads-up from the day itself up to a month before, end/reactivate for repeating ones and a "Concluídos" tab. Only the latest missed occurrence is listed.
 - Reminders on the Início page (in the agenda, and in "Precisa de atenção" from their heads-up day, with a button to mark them done there) and in the global search.
 - Bill frequency: besides monthly, bills can be bimonthly, quarterly, semiannual, yearly (IPTU, IPVA…) or one-off ("Avulsa"). They show up only in their due months, counted from the first one; existing bills stay monthly. The schedule (e.g. "trimestral · dia 10 (jan, abr, jul, out)") shows in the history dialog and search, and the history chart covers the last 12 due dates.

@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { RepeatIcon, type LucideIcon } from 'lucide-react'
+import { CreditCardIcon, RepeatIcon, type LucideIcon } from 'lucide-react'
 import { bills } from './bills'
 import { documents } from './documents'
 import { finance } from './finance'
@@ -32,10 +32,11 @@ export interface SubPage {
   name: string
   href: string
   icon: LucideIcon
-  /** Its data/<collection>.json, named in backups */
-  collection: string
+  /** Its own data/<collection>.json, named in backups (none when it reads another module's file) */
+  collection?: string
 }
 
 export const SUB_PAGES: SubPage[] = [
   { name: 'Assinaturas', href: '#/bills/subscriptions', icon: RepeatIcon, collection: 'subscriptions' },
+  { name: 'Cartões', href: '#/bills/cards', icon: CreditCardIcon },
 ]

@@ -33,10 +33,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { daysUntil, formatDate, formatMoney } from '@/lib/format'
+import { currentMonth, daysUntil, formatDate, formatMoney } from '@/lib/format'
 import { SubscriptionFormDialog } from './SubscriptionFormDialog'
 import { CYCLES, categoryLabel, type Subscription } from './types'
 import { useSubscriptions, type CategoryTotal, type SubscriptionRow } from './useSubscriptions'
+import { isCard } from '../bills/types'
+import { useBills } from '../bills/useBills'
 
 type Confirm = { kind: 'cancel' | 'delete'; subscription: Subscription }
 
@@ -50,6 +52,9 @@ function inDays(isoDate: string): string {
 /** `nav` is the Contas | Assinaturas switcher, shown above the page content. */
 export function SubscriptionsScreen({ nav }: { nav?: React.ReactNode }) {
   const subs = useSubscriptions()
+  const bills = useBills()
+  const thisMonth = currentMonth()
+  const cards = bills.bills.filter((b) => isCard(b) && (!b.endMonth || b.endMonth >= thisMonth))
   const [view, setView] = useState<'active' | 'cancelled'>('active')
   const [dialog, setDialog] = useState<{ subscription?: Subscription } | null>(null)
   const [confirm, setConfirm] = useState<Confirm | null>(null)
@@ -109,6 +114,7 @@ export function SubscriptionsScreen({ nav }: { nav?: React.ReactNode }) {
         onOpenChange={(open) => !open && setDialog(null)}
         subscription={dialog?.subscription}
         paymentMethods={subs.paymentMethods}
+        cards={cards}
         onSubmit={(input) => subs.saveSubscription(input, dialog?.subscription)}
       />
       <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>

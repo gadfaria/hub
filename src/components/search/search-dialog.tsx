@@ -124,7 +124,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
           {SUB_PAGES.map((page) => (
             <CommandItem
               key={page.href}
-              value={`page-${page.collection} ${page.name}`}
+              value={`page-${page.href} ${page.name}`}
               keywords={["ir para", "página"]}
               onSelect={() => go(page.href)}
             >

@@ -36,8 +36,10 @@ export interface Subscription extends Syncable {
   cycle: Cycle
   /** First charge, YYYY-MM-DD. Later charges repeat every cycle from this date. */
   startDate: string
-  /** e.g. "Nubank crédito" */
+  /** e.g. "Nubank crédito"; the card's name when charged to one of the cards in Contas › Cartões */
   paymentMethod: string
+  /** The card (a creditCard bill id) it is charged to, if any */
+  cardId?: string
   /** Where to manage or cancel it */
   url: string
   notes: string

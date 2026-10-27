@@ -53,6 +53,31 @@ export interface Bill extends Syncable {
   /** Last month it applies to, YYYY-MM, or empty while active */
   endMonth: string
   notes: string
+  /** Set on credit cards (category creditCard): the bill is the card's monthly statement */
+  card?: CardDetails
+}
+
+/** A credit card. Only the last digits: the full number, CVV or password never go in the vault. */
+export interface CardDetails {
+  bank: string
+  /** Last 4 digits, or empty */
+  lastDigits: string
+  /** Credit limit in cents, 0 when not set */
+  limit: number
+  /** Day the statement closes, 0 when not set */
+  closingDay: number
+}
+
+/** Credit cards are bills of category creditCard; older ones may have no details yet. */
+export function isCard(bill: Pick<Bill, 'category'>): boolean {
+  return bill.category === 'creditCard'
+}
+
+/** "Nubank •••• 1234" */
+export function cardLabel(bill: Pick<Bill, 'card'>): string {
+  const card = bill.card
+  if (!card) return ''
+  return [card.bank, card.lastDigits && `•••• ${card.lastDigits}`].filter(Boolean).join(' ')
 }
 
 /** One month of a bill: the real amount and whether it was paid. */

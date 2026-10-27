@@ -82,7 +82,7 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
       <DialogHeader>
         <DialogTitle>{bill ? 'Editar conta' : 'Nova conta'}</DialogTitle>
         <DialogDescription>
-          Contas com valor que muda: luz, água, aluguel, fatura… Todo mês, de tempos em tempos (IPTU, IPVA) ou uma vez só.
+          Contas com valor que muda: luz, água, aluguel… Todo mês, de tempos em tempos (IPTU, IPVA) ou uma vez só.
         </DialogDescription>
       </DialogHeader>
 
@@ -96,11 +96,14 @@ function BillForm({ bill, onSubmit, onOpenChange, onDelete }: BillFormDialogProp
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(BILL_CATEGORIES).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
+              {/* Credit cards have their own form in Cartões; an old bill already in this category keeps it. */}
+              {Object.entries(BILL_CATEGORIES)
+                .filter(([value]) => value !== 'creditCard' || bill?.category === 'creditCard')
+                .map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </Field>

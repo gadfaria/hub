@@ -21,6 +21,8 @@ interface SubscriptionFormDialogProps {
   onOpenChange: (open: boolean) => void
   subscription?: Subscription
   paymentMethods: string[]
+  /** Cards from Contas › Cartões, offered as payment methods */
+  cards: { id: string; name: string }[]
   onSubmit: (input: SubscriptionInput) => Promise<boolean>
 }
 
@@ -34,13 +36,20 @@ export function SubscriptionFormDialog(props: SubscriptionFormDialogProps) {
   )
 }
 
-function SubscriptionForm({ subscription, paymentMethods, onSubmit, onOpenChange }: SubscriptionFormDialogProps) {
+const OTHER = 'other'
+
+function SubscriptionForm({ subscription, paymentMethods, cards, onSubmit, onOpenChange }: SubscriptionFormDialogProps) {
   const [name, setName] = useState(subscription?.name ?? '')
   const [category, setCategory] = useState<Category>(subscription?.category ?? 'streaming')
   const [amountText, setAmountText] = useState(subscription ? formatMoneyInput(subscription.amount) : '')
   const [cycle, setCycle] = useState<Cycle>(subscription?.cycle ?? 'monthly')
   const [startDate, setStartDate] = useState(subscription?.startDate ?? today())
   const [paymentMethod, setPaymentMethod] = useState(subscription?.paymentMethod ?? '')
+  // A card that was since deleted falls back to the typed text.
+  const [cardChoice, setCardChoice] = useState(
+    cards.some((c) => c.id === subscription?.cardId) ? subscription!.cardId! : cards.length && !subscription ? cards[0].id : OTHER,
+  )
+  const card = cards.find((c) => c.id === cardChoice)
   const [url, setUrl] = useState(subscription?.url ?? '')
   const [notes, setNotes] = useState(subscription?.notes ?? '')
   const [pending, setPending] = useState(false)
@@ -60,7 +69,9 @@ function SubscriptionForm({ subscription, paymentMethods, onSubmit, onOpenChange
       amount: amount!,
       cycle,
       startDate,
-      paymentMethod: paymentMethod.trim(),
+      // The card's name is kept as text too, so the JSON on Drive stays readable.
+      paymentMethod: card ? card.name : paymentMethod.trim(),
+      cardId: card?.id ?? '',
       // Typing "netflix.com" should still produce a working link.
       url: trimmedUrl && !/^https?:\/\//i.test(trimmedUrl) ? `https://${trimmedUrl}` : trimmedUrl,
       notes: notes.trim(),
@@ -121,8 +132,25 @@ function SubscriptionForm({ subscription, paymentMethods, onSubmit, onOpenChange
         <Field label="Primeira cobrança" id="sub-start">
           <Input id="sub-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </Field>
-        <Field label="Forma de pagamento" optional id="sub-payment">
+        <Field label="Forma de pagamento" optional id={cards.length ? 'sub-card' : 'sub-payment'}>
+          {cards.length > 0 && (
+            <Select value={cardChoice} onValueChange={setCardChoice}>
+              <SelectTrigger id="sub-card" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cards.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={OTHER}>Outra forma</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Input
+            className={card ? 'hidden' : undefined}
+            aria-label="Outra forma de pagamento"
             id="sub-payment"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}

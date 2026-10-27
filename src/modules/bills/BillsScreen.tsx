@@ -27,9 +27,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { currentMonth, daysUntil, formatDate, formatMonth, formatMoney, shiftMonth } from '@/lib/format'
 import { BillFormDialog } from './BillFormDialog'
 import { BillHistoryDialog } from './BillHistoryDialog'
+import { CardFormDialog } from './CardFormDialog'
+import { CardsView } from './CardsView'
 import { PaymentDialog } from './PaymentDialog'
-import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, FREQUENCIES, PAYMENT_METHODS, type Bill, type BillStatus } from './types'
+import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus } from './types'
 import { useBills, type MonthRow } from './useBills'
+import { useSubscriptions } from '../subscriptions/useSubscriptions'
 
 type Confirm = { kind: 'end' | 'delete'; bill: Bill }
 
@@ -45,9 +48,14 @@ function StatusBadge({ status }: { status: BillStatus }) {
   return <Badge variant="secondary">{BILL_STATUS_LABELS.pending}</Badge>
 }
 
-/** `nav` is the Contas | Assinaturas switcher, shown above the page content. */
-export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
+/**
+ * Contas and Cartões share this screen (month, dialogs): a card is a bill of category creditCard.
+ * `nav` is the Contas | Assinaturas | Cartões switcher, shown above the page content.
+ */
+export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; view?: 'bills' | 'cards' }) {
   const bills = useBills()
+  const subs = useSubscriptions()
+  const [cardDialog, setCardDialog] = useState<{ card?: Bill } | null>(null)
   const [month, setMonth] = useState(currentMonth)
   const [billDialog, setBillDialog] = useState<{ bill?: Bill } | null>(null)
   const [paymentRow, setPaymentRow] = useState<{ row: MonthRow; markPaid: boolean } | null>(null)
@@ -56,16 +64,27 @@ export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
 
   const rows = bills.monthRows(month)
   const isCurrent = month === currentMonth()
+  const editBill = (bill: Bill) => (isCard(bill) ? setCardDialog({ card: bill }) : setBillDialog({ bill }))
 
   return (
     <>
-      <SiteHeader title="Contas">
-        <Button size="sm" onClick={() => setBillDialog({})} disabled={bills.loading}>
-          <PlusIcon />
-          <span className="hidden sm:inline">Nova conta</span>
-          <span className="sm:hidden">Nova</span>
-        </Button>
-      </SiteHeader>
+      {view === 'cards' ? (
+        <SiteHeader title={[{ label: 'Contas', href: '#/bills' }, { label: 'Cartões' }]}>
+          <Button size="sm" onClick={() => setCardDialog({})} disabled={bills.loading}>
+            <PlusIcon />
+            <span className="hidden sm:inline">Novo cartão</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+        </SiteHeader>
+      ) : (
+        <SiteHeader title="Contas">
+          <Button size="sm" onClick={() => setBillDialog({})} disabled={bills.loading}>
+            <PlusIcon />
+            <span className="hidden sm:inline">Nova conta</span>
+            <span className="sm:hidden">Nova</span>
+          </Button>
+        </SiteHeader>
+      )}
 
       <PageBody>
         {nav}
@@ -84,20 +103,36 @@ export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
           )}
         </div>
 
-        <SummaryCards loading={bills.loading} rows={rows} />
-
-        <div className="px-4 lg:px-6">
-          <BillsTable
-            loading={bills.loading}
-            rows={rows}
-            hasBills={bills.bills.length > 0}
+        {view === 'cards' ? (
+          <CardsView
+            loading={bills.loading || subs.loading}
+            rows={rows.filter((row) => isCard(row.bill))}
+            subscriptions={subs.active}
+            onAdd={() => setCardDialog({})}
             onPay={(row) => setPaymentRow({ row, markPaid: true })}
             onEnter={(row) => setPaymentRow({ row, markPaid: false })}
             onUndo={(row) => row.payment && bills.undoPayment(row.payment)}
             onHistory={(row) => setHistoryBill(row.bill)}
-            onEdit={(row) => setBillDialog({ bill: row.bill })}
+            onEdit={(row) => editBill(row.bill)}
           />
-        </div>
+        ) : (
+          <>
+            <SummaryCards loading={bills.loading} rows={rows} />
+
+            <div className="px-4 lg:px-6">
+              <BillsTable
+                loading={bills.loading}
+                rows={rows}
+                hasBills={bills.bills.length > 0}
+                onPay={(row) => setPaymentRow({ row, markPaid: true })}
+                onEnter={(row) => setPaymentRow({ row, markPaid: false })}
+                onUndo={(row) => row.payment && bills.undoPayment(row.payment)}
+                onHistory={(row) => setHistoryBill(row.bill)}
+                onEdit={(row) => editBill(row.bill)}
+              />
+            </div>
+          </>
+        )}
       </PageBody>
 
       <BillFormDialog
@@ -106,6 +141,13 @@ export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
         bill={billDialog?.bill}
         onSubmit={(input) => bills.saveBill(input, billDialog?.bill)}
         onDelete={(bill) => setConfirm({ kind: 'delete', bill })}
+      />
+      <CardFormDialog
+        open={cardDialog !== null && confirm === null}
+        onOpenChange={(open) => !open && setCardDialog(null)}
+        card={cardDialog?.card}
+        onSubmit={(input) => bills.saveBill(input, cardDialog?.card)}
+        onDelete={(card) => setConfirm({ kind: 'delete', bill: card })}
       />
       <PaymentDialog
         row={paymentRow?.row ?? null}
@@ -120,14 +162,14 @@ export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
         onClose={() => setHistoryBill(null)}
         onEdit={(bill) => {
           setHistoryBill(null)
-          setBillDialog({ bill })
+          editBill(bill)
         }}
         onEnd={(bill) => setConfirm({ kind: 'end', bill })}
       />
       <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{confirm?.kind === 'end' ? `Encerrar ${confirm.bill.name}?` : 'Excluir conta?'}</AlertDialogTitle>
+            <AlertDialogTitle>{confirm?.kind === 'end' ? `Encerrar ${confirm.bill.name}?` : confirm && isCard(confirm.bill) ? 'Excluir cartão?' : 'Excluir conta?'}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.kind === 'end'
                 ? `Ela deixa de aparecer depois de ${formatMonth(month)}. O histórico continua guardado.`
@@ -140,7 +182,10 @@ export function BillsScreen({ nav }: { nav?: React.ReactNode }) {
               variant={confirm?.kind === 'delete' ? 'destructive' : 'default'}
               onClick={async () => {
                 if (confirm?.kind === 'end' && (await bills.endBill(confirm.bill, month))) setHistoryBill(null)
-                if (confirm?.kind === 'delete' && (await bills.deleteBill(confirm.bill))) setBillDialog(null)
+                if (confirm?.kind === 'delete' && (await bills.deleteBill(confirm.bill))) {
+                  setBillDialog(null)
+                  setCardDialog(null)
+                }
                 setConfirm(null)
               }}
             >
@@ -304,7 +349,7 @@ function BillsTable({
                   <div className="flex flex-col">
                     <span className="truncate font-medium">{row.bill.name}</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {BILL_CATEGORIES[row.bill.category]} · {PAYMENT_METHODS[row.bill.paymentMethod]}
+                      {(isCard(row.bill) && cardLabel(row.bill)) || BILL_CATEGORIES[row.bill.category]} · {PAYMENT_METHODS[row.bill.paymentMethod]}
                       {billFrequency(row.bill) !== 'monthly' && ` · ${FREQUENCIES[billFrequency(row.bill)].label.toLowerCase()}`}
                     </span>
                   </div>
@@ -348,7 +393,7 @@ function BillsTable({
                         )}
                         <DropdownMenuItem onSelect={() => onHistory(row)}>Ver histórico</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => onEdit(row)}>Editar conta</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onEdit(row)}>{isCard(row.bill) ? 'Editar cartão' : 'Editar conta'}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
