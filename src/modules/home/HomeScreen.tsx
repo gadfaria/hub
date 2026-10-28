@@ -123,49 +123,11 @@ export function HomeScreen() {
               if (day.slice(0, 7) !== shownMonth) setShownMonth(day.slice(0, 7))
             }}
             onMonth={showMonth}
+            attention={attention}
+            agenda={agenda}
           />
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-4 px-4 lg:px-6 @4xl/main:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Precisa de atenção</CardTitle>
-              <CardDescription>Atrasos, vencimentos e o que está chegando</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-40 w-full" />
-              ) : attention.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <CheckCircle2Icon className="size-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Nada pendente. Tudo em dia.</p>
-                </div>
-              ) : (
-                <ul className="flex flex-col divide-y">
-                  {attention.map((event) => (
-                    <EventRow key={event.id} event={event} trailing={relativeDay(event.date)} />
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Próximos {AGENDA_DAYS} dias</CardTitle>
-              <CardDescription>Vencimentos, cobranças, retornos e lembretes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-40 w-full" />
-              ) : agenda.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">Nada agendado.</p>
-              ) : (
-                <Agenda events={agenda} />
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </PageBody>
     </>
   )
@@ -259,6 +221,8 @@ function CalendarCard({
   selected,
   onSelect,
   onMonth,
+  attention,
+  agenda,
 }: {
   loading: boolean
   month: string
@@ -267,6 +231,8 @@ function CalendarCard({
   selected: string
   onSelect: (day: string) => void
   onMonth: (month: string) => void
+  attention: HomeEvent[]
+  agenda: HomeEvent[]
 }) {
   const now = today()
   const dayItems = itemsOn(items, selected)
@@ -288,7 +254,7 @@ function CalendarCard({
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-6 @4xl/main:grid-cols-[minmax(0,1fr)_18rem]">
+      <CardContent className="grid grid-cols-1 gap-6 @4xl/main:grid-cols-[minmax(0,1fr)_20rem]">
         <div>
           <div className="grid grid-cols-7 pb-1 text-center text-xs text-muted-foreground">
             {WEEKDAY_LABELS.map((label) => (
@@ -347,40 +313,74 @@ function CalendarCard({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-sm font-medium first-letter:uppercase">
-              {formatDate(selected, { weekday: 'long', day: 'numeric', month: 'long' })}
-            </span>
-            <span className="text-xs text-muted-foreground">{relativeDay(selected)}</span>
-          </div>
-          {loading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : dayItems.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Nada neste dia.</p>
-          ) : (
-            <ul className="flex flex-col divide-y">
-              {dayItems.map((item) => (
-                <li key={item.id}>
-                  <a href={item.href} className="group flex items-center gap-3 py-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
-                      {item.done ? <CheckIcon className="size-4 text-muted-foreground" /> : <item.icon className="size-4 text-muted-foreground" />}
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className={`truncate text-sm font-medium ${itemTone(item)}`}>{item.title}</span>
-                      {item.until !== item.date && (
-                        <span className="truncate text-xs text-muted-foreground">
-                          {formatDate(item.date, { day: 'numeric', month: 'short' })} a {formatDate(item.until, { day: 'numeric', month: 'short' })}
+        {/* Wide screens: as tall as the calendar and scrolls inside; phones: below it, full length. */}
+        <div className="relative min-w-0">
+          <div className="flex flex-col gap-6 @4xl/main:absolute @4xl/main:inset-0 @4xl/main:overflow-y-auto @4xl/main:pr-1">
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Precisa de atenção</h3>
+              {loading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : attention.length === 0 ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle2Icon className="size-4" />
+                  Nada pendente. Tudo em dia.
+                </p>
+              ) : (
+                <ul className="flex flex-col divide-y">
+                  {attention.map((event) => (
+                    <EventRow key={event.id} event={event} trailing={relativeDay(event.date)} />
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-medium first-letter:uppercase">
+                  {formatDate(selected, { weekday: 'long', day: 'numeric', month: 'long' })}
+                </h3>
+                <span className="text-xs text-muted-foreground">{relativeDay(selected)}</span>
+              </div>
+              {loading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : dayItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nada neste dia.</p>
+              ) : (
+                <ul className="flex flex-col divide-y">
+                  {dayItems.map((item) => (
+                    <li key={item.id}>
+                      <a href={item.href} className="group flex items-center gap-3 py-2">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
+                          {item.done ? <CheckIcon className="size-4 text-muted-foreground" /> : <item.icon className="size-4 text-muted-foreground" />}
                         </span>
-                      )}
-                    </span>
-                    {item.meta && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.meta}</span>}
-                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className={`truncate text-sm font-medium ${itemTone(item)}`}>{item.title}</span>
+                          {item.until !== item.date && (
+                            <span className="truncate text-xs text-muted-foreground">
+                              {formatDate(item.date, { day: 'numeric', month: 'short' })} a {formatDate(item.until, { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                        </span>
+                        {item.meta && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.meta}</span>}
+                        <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">Próximos {AGENDA_DAYS} dias</h3>
+              {loading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : agenda.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nada agendado.</p>
+              ) : (
+                <Agenda events={agenda} />
+              )}
+            </section>
+          </div>
         </div>
       </CardContent>
     </Card>
