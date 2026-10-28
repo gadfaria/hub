@@ -29,6 +29,8 @@ export interface CalendarItem {
   done: boolean
   /** Overdue and still waiting to be done */
   late: boolean
+  /** Reminders only: the color picked for the calendar */
+  color?: string
 }
 
 /** The six weeks shown for a month, Sunday first, as YYYY-MM-DD. */
@@ -67,6 +69,7 @@ export function collectCalendar(from: string, to: string, sources: CalendarSourc
       href: '#/reminders',
       done,
       late,
+      color: reminder.color,
     })
   }
 
@@ -176,4 +179,38 @@ export function monthsBetween(from: string, to: string): string[] {
     months.push(toIsoDate(date).slice(0, 7))
   }
   return months
+}
+
+/** A period drawn as a bar across one week row of the calendar. */
+export interface WeekSpan {
+  item: CalendarItem
+  /** First and last column it covers in this week, 0 = Sunday */
+  start: number
+  end: number
+  /** Row inside the week, so overlapping periods stack instead of covering each other */
+  lane: number
+  /** It began in an earlier week / goes on into a later one */
+  fromBefore: boolean
+  goesOn: boolean
+}
+
+/** Places the multi-day items of one week (seven days, Sunday first) into stacked lanes. */
+export function weekSpans(week: string[], items: CalendarItem[]): { spans: WeekSpan[]; lanes: number } {
+  const first = week[0]
+  const last = week[week.length - 1]
+  const periods = items
+    .filter((item) => item.until > item.date && item.date <= last && item.until >= first)
+    // Earlier first, and the longer one first when two start together, like most calendars.
+    .sort((a, b) => a.date.localeCompare(b.date) || b.until.localeCompare(a.until))
+
+  const laneEnds: number[] = []
+  const spans = periods.map((item) => {
+    const start = item.date < first ? 0 : week.indexOf(item.date)
+    const end = item.until > last ? week.length - 1 : week.indexOf(item.until)
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd < start)
+    if (lane === -1) lane = laneEnds.length
+    laneEnds[lane] = end
+    return { item, start, end, lane, fromBefore: item.date < first, goesOn: item.until > last }
+  })
+  return { spans, lanes: laneEnds.length }
 }

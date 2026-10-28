@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Reminder colors: pick one of eight colors (or none) in the reminder form. The calendar shows the reminder in that color, as does the dot next to its title in the list and in the agenda.
+- Periods on the calendar: a reminder with a start and an end is drawn as one bar across the days it covers, named at its start and again at the start of each week it continues into; overlapping periods stack. Phones show a thin colored line. Busy weeks grow taller instead of clipping.
 - Reading mode for notes: a "Ler" / "Editar" button next to the title locks the note for viewing only (links open, checklists don't toggle). The choice is remembered on the device.
 - Tables in notes: pasted Markdown tables become real tables and are saved back as Markdown tables; ⌘⌥T inserts a new 3×3 table.
 - Month calendar on Início, in place of the summary cards: reminders (every repetition, and multi-day periods), bills (paid, pending, overdue), subscription charges, document expiries, insurance ends, health follow-ups and investment maturities. A side panel holds "Precisa de atenção", the selected day's items and the next 30 days (which used to be separate cards below); On wide screens the calendar fills the rest of the screen's height and the panel scrolls within it; on phones the panel sits below the calendar. Titles show in the cells on wide screens and dots on phones. Only the occurrence a reminder is waiting on shows as late.

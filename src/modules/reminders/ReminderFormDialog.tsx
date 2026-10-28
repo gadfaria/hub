@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { parseDate, today } from '@/lib/format'
-import { FREQUENCIES, LEAD_OPTIONS, WEEKDAYS, type Reminder, type ReminderFrequency } from './types'
+import { CheckIcon } from 'lucide-react'
+import { FREQUENCIES, LEAD_OPTIONS, REMINDER_COLORS, WEEKDAYS, type Reminder, type ReminderColor, type ReminderFrequency } from './types'
 import type { ReminderInput } from './useReminders'
 
 interface ReminderFormDialogProps {
@@ -44,6 +45,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
   const [weekdays, setWeekdays] = useState<number[]>(reminder?.weekdays ?? [])
   const [leadDays, setLeadDays] = useState(String(reminder?.leadDays ?? 0))
   const [notes, setNotes] = useState(reminder?.notes ?? '')
+  const [color, setColor] = useState<ReminderColor | ''>(reminder?.color ?? '')
   const [pending, setPending] = useState(false)
 
   const step = Math.round(Number(every))
@@ -74,6 +76,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
       weekdays: frequency === 'weekly' ? weekdays : [],
       leadDays: Number(leadDays),
       notes: notes.trim(),
+      color,
     })
     setPending(false)
     if (ok) onOpenChange(false)
@@ -172,6 +175,14 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
             </ToggleGroup>
           </Field>
         )}
+        <Field label="Cor no calendário" optional id="reminder-color" className="col-span-2">
+          <div id="reminder-color" role="radiogroup" className="flex flex-wrap gap-2">
+            <ColorSwatch label="Sem cor" selected={color === ''} onSelect={() => setColor('')} className="border-2 border-dashed bg-transparent" />
+            {Object.entries(REMINDER_COLORS).map(([value, { label, dot }]) => (
+              <ColorSwatch key={value} label={label} selected={color === value} onSelect={() => setColor(value as ReminderColor)} className={dot} />
+            ))}
+          </div>
+        </Field>
         <Field label="Observações" optional id="reminder-notes" className="col-span-2">
           <Textarea id="reminder-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </Field>
@@ -190,5 +201,23 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+function ColorSwatch({ label, selected, onSelect, className }: { label: string; selected: boolean; onSelect: () => void; className: string }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={label}
+      title={label}
+      onClick={onSelect}
+      className={`flex size-7 items-center justify-center rounded-full outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring ${
+        selected ? 'ring-2 ring-foreground' : ''
+      } ${className}`}
+    >
+      {selected && <CheckIcon className="size-3.5 text-white mix-blend-difference" />}
+    </button>
   )
 }

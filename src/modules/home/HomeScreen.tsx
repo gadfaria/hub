@@ -15,7 +15,8 @@ import { useHealth } from '@/modules/health/useHealth'
 import { useReminders, type ReminderRow } from '@/modules/reminders/useReminders'
 import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions'
 import { useVehicles } from '@/modules/vehicles/useVehicles'
-import { collectCalendar, itemsOn, monthGrid, monthsBetween, type CalendarItem } from './calendar'
+import { reminderColor } from '@/modules/reminders/types'
+import { collectCalendar, itemsOn, monthGrid, monthsBetween, weekSpans, type CalendarItem, type WeekSpan } from './calendar'
 import { AGENDA_DAYS, byUrgency, collectEvents, type HomeEvent, type Severity } from './events'
 
 function greeting(): string {
@@ -188,7 +189,11 @@ function Agenda({ events }: { events: HomeEvent[] }) {
               {list.map((event) => (
                 <li key={event.id}>
                   <a href={event.href} className="flex items-baseline gap-2 py-0.5 text-sm hover:underline">
-                    <span className={`size-1.5 shrink-0 translate-y-[-1px] rounded-full ${DOT[event.severity]}`} />
+                    <span
+                      className={`size-1.5 shrink-0 translate-y-[-1px] rounded-full ${
+                        event.severity === 'info' ? (reminderColor(event.color)?.dot ?? DOT.info) : DOT[event.severity]
+                      }`}
+                    />
                     <span className="truncate">{event.title}</span>
                     <span className="ml-auto shrink-0 truncate text-xs text-muted-foreground tabular-nums">{event.meta}</span>
                   </a>
@@ -203,6 +208,7 @@ function Agenda({ events }: { events: HomeEvent[] }) {
 }
 
 const WEEKDAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const NO_SPANS = { spans: [], lanes: 0 }
 /** Items listed inside a day cell on wide screens; the rest become "+N". */
 const CELL_ITEMS = 3
 
@@ -212,6 +218,96 @@ function itemTone(item: CalendarItem): string {
   // A past occurrence nobody marked: no longer asked for, so just faded.
   if (item.until < today()) return 'text-muted-foreground'
   return ''
+}
+
+/** Dot color for an item: state first (late, done or past), then its own color. */
+function dotClass(item: CalendarItem): string {
+  if (item.late) return 'bg-destructive'
+  if (item.done || item.until < today()) return 'bg-muted-foreground/40'
+  return reminderColor(item.color)?.dot ?? 'bg-foreground'
+}
+
+function DayCell({
+  day,
+  inMonth,
+  selected,
+  all,
+  lanes,
+  onSelect,
+}: {
+  day: string
+  inMonth: boolean
+  selected: boolean
+  /** Everything on this day, periods included */
+  all: CalendarItem[]
+  /** Period bars drawn over this week, which the cell leaves room for */
+  lanes: number
+  onSelect: (day: string) => void
+}) {
+  // Periods are drawn as bars over the week; the cell lists only the single-day items.
+  const singles = all.filter((item) => item.until === item.date)
+  // Each period bar takes about a line of the cell, but always keep room for two titles.
+  const room = Math.max(2, CELL_ITEMS + 1 - lanes)
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(day)}
+      aria-pressed={selected}
+      aria-label={`${formatDate(day, { day: 'numeric', month: 'long' })}${all.length ? `, ${all.length} ${all.length === 1 ? 'item' : 'itens'}` : ''}`}
+      className={`flex min-h-14 min-w-0 flex-col items-stretch gap-0.5 p-1 text-left outline-none @4xl/main:min-h-24 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${
+        selected ? 'bg-muted' : 'bg-card hover:bg-muted/60'
+      } ${inMonth ? '' : 'text-muted-foreground/60'}`}
+    >
+      <span
+        className={`flex size-6 shrink-0 items-center justify-center self-center rounded-full text-xs tabular-nums @4xl/main:self-start ${
+          day === today() ? 'bg-primary font-semibold text-primary-foreground' : ''
+        }`}
+      >
+        {Number(day.slice(8, 10))}
+      </span>
+      {/* Room for the period bars drawn over the week: thin lines on phones, labeled bars on wide screens. */}
+      {lanes > 0 && <span className="h-[calc(var(--lanes)*0.375rem)] shrink-0 @4xl/main:h-[calc(var(--lanes)*1.125rem)]" />}
+      {/* Phones: a dot per item (up to four). */}
+      {singles.length > 0 && (
+        <span className="flex justify-center gap-0.5 @4xl/main:hidden">
+          {singles.slice(0, 4).map((item) => (
+            <span key={item.id} className={`size-1.5 rounded-full ${dotClass(item)}`} />
+          ))}
+        </span>
+      )}
+      {/* Wide screens: the first few titles. */}
+      <span className="hidden min-w-0 flex-col gap-0.5 @4xl/main:flex">
+        {singles.slice(0, room).map((item) => (
+          <span key={item.id} className={`flex min-w-0 items-center gap-1 text-[11px] leading-4 ${itemTone(item)}`}>
+            <item.icon className={`size-3 shrink-0 ${reminderColor(item.color)?.text ?? 'text-muted-foreground'}`} />
+            <span className="truncate">{item.title}</span>
+          </span>
+        ))}
+        {singles.length > room && <span className="text-[11px] leading-4 text-muted-foreground">+{singles.length - room}</span>}
+      </span>
+    </button>
+  )
+}
+
+/** A period across part of a week: a thin line on phones, a labeled bar on wide screens. */
+function SpanBar({ span }: { span: WeekSpan }) {
+  const { item } = span
+  const color = reminderColor(item.color)
+  const past = !item.late && (item.done || item.until < today())
+  const ends = `${span.fromBefore ? '' : 'ml-0.5 rounded-l-sm'} ${span.goesOn ? '' : 'mr-0.5 rounded-r-sm'}`
+  return (
+    <span style={{ gridColumn: `${span.start + 1} / ${span.end + 2}`, gridRow: span.lane + 1 }} className={`min-w-0 ${past ? 'opacity-50' : ''}`}>
+      <span className={`block h-1 @4xl/main:hidden ${ends} ${item.late ? 'bg-destructive' : color?.line ?? 'bg-foreground/60'}`} />
+      <span
+        className={`hidden h-4 truncate px-1 text-[11px] leading-4 font-medium @4xl/main:block ${ends} ${color?.bar ?? 'bg-muted text-foreground'} ${
+          item.late ? 'text-destructive ring-1 ring-destructive ring-inset' : ''
+        } ${item.done ? 'line-through' : ''}`}
+      >
+        {/* Named at its start and again at the start of each week it continues into. */}
+        {item.title}
+      </span>
+    </span>
+  )
 }
 
 function CalendarCard({
@@ -235,8 +331,8 @@ function CalendarCard({
   attention: HomeEvent[]
   agenda: HomeEvent[]
 }) {
-  const now = today()
   const dayItems = itemsOn(items, selected)
+  const weeks = Array.from({ length: grid.length / 7 }, (_, i) => grid.slice(i * 7, i * 7 + 7))
 
   return (
     <Card className="@4xl/main:flex-1">
@@ -262,53 +358,35 @@ function CalendarCard({
               <span key={label}>{label}</span>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-md border bg-border @4xl/main:flex-1 @4xl/main:grid-rows-[repeat(6,minmax(6rem,1fr))]">
-            {grid.map((day) => {
-              const inMonth = day.slice(0, 7) === month
-              const list = loading ? [] : itemsOn(items, day)
-              const isSelected = day === selected
+          <div className="flex flex-col gap-px overflow-hidden rounded-md border bg-border @4xl/main:flex-1">
+            {weeks.map((week) => {
+              const { spans, lanes } = loading ? NO_SPANS : weekSpans(week, items)
               return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => onSelect(day)}
-                  aria-pressed={isSelected}
-                  aria-label={`${formatDate(day, { day: 'numeric', month: 'long' })}${list.length ? `, ${list.length} ${list.length === 1 ? 'item' : 'itens'}` : ''}`}
-                  className={`flex min-h-14 min-w-0 flex-col items-stretch gap-0.5 p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${
-                    isSelected ? 'bg-muted' : 'bg-card hover:bg-muted/60'
-                  } ${inMonth ? '' : 'text-muted-foreground/60'}`}
+                <div
+                  key={week[0]}
+                  className="relative grid grid-cols-7 gap-px @4xl/main:flex-1"
+                  style={{ '--lanes': lanes } as React.CSSProperties}
                 >
-                  <span
-                    className={`flex size-6 items-center justify-center self-center rounded-full text-xs tabular-nums @4xl/main:self-start ${
-                      day === now ? 'bg-primary font-semibold text-primary-foreground' : ''
-                    }`}
-                  >
-                    {Number(day.slice(8, 10))}
-                  </span>
-                  {/* Phones: a dot per item (up to four). */}
-                  {list.length > 0 && (
-                    <span className="flex justify-center gap-0.5 @4xl/main:hidden">
-                      {list.slice(0, 4).map((item) => (
-                        <span
-                          key={item.id}
-                          className={`size-1.5 rounded-full ${item.late ? 'bg-destructive' : item.done || item.until < now ? 'bg-muted-foreground/40' : 'bg-foreground'}`}
-                        />
+                  {week.map((day) => (
+                    <DayCell
+                      key={day}
+                      day={day}
+                      inMonth={day.slice(0, 7) === month}
+                      selected={day === selected}
+                      all={loading ? [] : itemsOn(items, day)}
+                      lanes={lanes}
+                      onSelect={onSelect}
+                    />
+                  ))}
+                  {/* Periods: one bar across the days they cover, stacked when they overlap. Clicks go to the day below. */}
+                  {spans.length > 0 && (
+                    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-[1.875rem] grid grid-cols-7 gap-x-px gap-y-0.5">
+                      {spans.map((span) => (
+                        <SpanBar key={`${span.item.id}-${week[0]}`} span={span} />
                       ))}
-                    </span>
+                    </div>
                   )}
-                  {/* Wide screens: the first few titles. */}
-                  <span className="hidden min-w-0 flex-col gap-0.5 @4xl/main:flex">
-                    {list.slice(0, CELL_ITEMS).map((item) => (
-                      <span key={item.id} className={`flex min-w-0 items-center gap-1 text-[11px] leading-4 ${itemTone(item)}`}>
-                        <item.icon className="size-3 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{item.title}</span>
-                      </span>
-                    ))}
-                    {list.length > CELL_ITEMS && (
-                      <span className="text-[11px] leading-4 text-muted-foreground">+{list.length - CELL_ITEMS}</span>
-                    )}
-                  </span>
-                </button>
+                </div>
               )
             })}
           </div>
@@ -352,7 +430,11 @@ function CalendarCard({
                     <li key={item.id}>
                       <a href={item.href} className="group flex items-center gap-3 py-2">
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
-                          {item.done ? <CheckIcon className="size-4 text-muted-foreground" /> : <item.icon className="size-4 text-muted-foreground" />}
+                          {item.done ? (
+                            <CheckIcon className="size-4 text-muted-foreground" />
+                          ) : (
+                            <item.icon className={`size-4 ${reminderColor(item.color)?.text ?? 'text-muted-foreground'}`} />
+                          )}
                         </span>
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className={`truncate text-sm font-medium ${itemTone(item)}`}>{item.title}</span>

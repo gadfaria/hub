@@ -30,6 +30,8 @@ export interface HomeEvent {
   attention: boolean
   /** Marks it done right from the list (reminders) */
   onComplete?: () => void
+  /** Reminders only: the color picked for the calendar */
+  color?: string
 }
 
 /** Agenda horizon and how close something must be to need attention. */
@@ -86,6 +88,7 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       href: '#/reminders',
       attention,
       onComplete: () => sources.completeReminder(row),
+      color: row.reminder.color,
     })
   }
 

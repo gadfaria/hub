@@ -25,6 +25,28 @@ export const LEAD_OPTIONS = {
   30: '1 mês antes',
 } as const
 
+/**
+ * Colors a reminder can have on the calendar. A fixed palette (not free colors) so each one
+ * reads well in light and dark mode. Class names are spelled out so Tailwind generates them.
+ */
+export const REMINDER_COLORS = {
+  red: { label: 'Vermelho', dot: 'bg-red-500', text: 'text-red-600 dark:text-red-400', bar: 'bg-red-500/15 text-red-800 dark:text-red-200', line: 'bg-red-500' },
+  orange: { label: 'Laranja', dot: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400', bar: 'bg-orange-500/15 text-orange-800 dark:text-orange-200', line: 'bg-orange-500' },
+  amber: { label: 'Amarelo', dot: 'bg-amber-400', text: 'text-amber-600 dark:text-amber-400', bar: 'bg-amber-400/20 text-amber-800 dark:text-amber-200', line: 'bg-amber-400' },
+  green: { label: 'Verde', dot: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bar: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200', line: 'bg-emerald-500' },
+  teal: { label: 'Turquesa', dot: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', bar: 'bg-teal-500/15 text-teal-800 dark:text-teal-200', line: 'bg-teal-500' },
+  blue: { label: 'Azul', dot: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', bar: 'bg-blue-500/15 text-blue-800 dark:text-blue-200', line: 'bg-blue-500' },
+  violet: { label: 'Roxo', dot: 'bg-violet-500', text: 'text-violet-600 dark:text-violet-400', bar: 'bg-violet-500/15 text-violet-800 dark:text-violet-200', line: 'bg-violet-500' },
+  pink: { label: 'Rosa', dot: 'bg-pink-500', text: 'text-pink-600 dark:text-pink-400', bar: 'bg-pink-500/15 text-pink-800 dark:text-pink-200', line: 'bg-pink-500' },
+} as const
+
+export type ReminderColor = keyof typeof REMINDER_COLORS
+
+/** The palette entry for a stored color, or undefined for none (or a value this version doesn't know). */
+export function reminderColor(color: string | undefined) {
+  return color && color in REMINDER_COLORS ? REMINDER_COLORS[color as ReminderColor] : undefined
+}
+
 export interface Reminder extends Syncable {
   title: string
   notes: string
@@ -40,6 +62,8 @@ export interface Reminder extends Syncable {
    * Repeating: the last day it can fall on. One-time: the last day of a period (a trip, a stay).
    */
   endDate?: string
+  /** Color on the calendar, empty for none (also missing on reminders saved before it existed) */
+  color?: ReminderColor | ''
   /** Shown in "Precisa de atenção" from this many days before */
   leadDays: number
   /** YYYY-MM-DD when it was ended, empty while active */

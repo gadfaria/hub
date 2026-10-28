@@ -27,7 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { addDays, daysUntil, formatDate, today } from '@/lib/format'
 import { ReminderFormDialog } from './ReminderFormDialog'
-import { scheduleLabel, type Reminder } from './types'
+import { reminderColor, scheduleLabel, type Reminder } from './types'
 import { useReminders, type FinishedRow, type ReminderRow } from './useReminders'
 
 type Confirm = { kind: 'end' | 'delete'; reminder: Reminder }
@@ -212,7 +212,7 @@ function ActiveTable({
                 </TableCell>
                 <TableCell className="max-w-64">
                   <div className="flex flex-col">
-                    <span className="truncate font-medium">{row.reminder.title}</span>
+                    <ReminderTitle reminder={row.reminder} />
                     <span className="truncate text-xs text-muted-foreground">
                       {scheduleLabel(row.reminder)}
                       {row.due !== row.date && ` · adiado de ${formatDate(row.date, { day: '2-digit', month: '2-digit' })}`}
@@ -297,7 +297,7 @@ function FinishedTable({
                 <TableCell className="pl-4 tabular-nums text-muted-foreground">{formatDate(finishedOn)}</TableCell>
                 <TableCell className="max-w-64">
                   <div className="flex flex-col">
-                    <span className="truncate font-medium">{reminder.title}</span>
+                    <ReminderTitle reminder={reminder} />
                     <span className="truncate text-xs text-muted-foreground">{scheduleLabel(reminder)}</span>
                   </div>
                 </TableCell>
@@ -341,5 +341,16 @@ function FinishedTable({
         </TableBody>
       </Table>
     </div>
+  )
+}
+
+/** The title, with the reminder's calendar color as a dot when it has one. */
+function ReminderTitle({ reminder }: { reminder: Reminder }) {
+  const color = reminderColor(reminder.color)
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 font-medium">
+      {color && <span className={`size-2 shrink-0 rounded-full ${color.dot}`} />}
+      <span className="truncate">{reminder.title}</span>
+    </span>
   )
 }
