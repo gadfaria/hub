@@ -111,7 +111,8 @@ export function HomeScreen() {
           </p>
         </div>
 
-        <div className="px-4 lg:px-6">
+        {/* Wide screens: the calendar takes the rest of the screen's height. */}
+        <div className="flex flex-col px-4 lg:px-6 @4xl/main:flex-1">
           <CalendarCard
             loading={loading}
             month={shownMonth}
@@ -238,7 +239,7 @@ function CalendarCard({
   const dayItems = itemsOn(items, selected)
 
   return (
-    <Card>
+    <Card className="@4xl/main:flex-1">
       <CardHeader>
         <CardTitle className="first-letter:uppercase">{formatMonth(month)}</CardTitle>
         <CardDescription>Lembretes, contas, cobranças e vencimentos</CardDescription>
@@ -254,14 +255,14 @@ function CalendarCard({
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-6 @4xl/main:grid-cols-[minmax(0,1fr)_20rem]">
-        <div>
+      <CardContent className="grid grid-cols-1 gap-6 @4xl/main:flex-1 @4xl/main:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex flex-col">
           <div className="grid grid-cols-7 pb-1 text-center text-xs text-muted-foreground">
             {WEEKDAY_LABELS.map((label) => (
               <span key={label}>{label}</span>
             ))}
           </div>
-          <div className="grid grid-cols-7 overflow-hidden rounded-md border bg-border gap-px">
+          <div className="grid grid-cols-7 gap-px overflow-hidden rounded-md border bg-border @4xl/main:flex-1 @4xl/main:grid-rows-[repeat(6,minmax(6rem,1fr))]">
             {grid.map((day) => {
               const inMonth = day.slice(0, 7) === month
               const list = loading ? [] : itemsOn(items, day)
@@ -273,7 +274,7 @@ function CalendarCard({
                   onClick={() => onSelect(day)}
                   aria-pressed={isSelected}
                   aria-label={`${formatDate(day, { day: 'numeric', month: 'long' })}${list.length ? `, ${list.length} ${list.length === 1 ? 'item' : 'itens'}` : ''}`}
-                  className={`flex min-h-14 min-w-0 flex-col items-stretch gap-0.5 p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset @4xl/main:min-h-24 ${
+                  className={`flex min-h-14 min-w-0 flex-col items-stretch gap-0.5 p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${
                     isSelected ? 'bg-muted' : 'bg-card hover:bg-muted/60'
                   } ${inMonth ? '' : 'text-muted-foreground/60'}`}
                 >
