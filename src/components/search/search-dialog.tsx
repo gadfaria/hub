@@ -14,6 +14,7 @@ import { useBills } from "@/modules/bills/useBills"
 import { useDocuments } from "@/modules/documents/useDocuments"
 import { useFinance } from "@/modules/finance/useFinance"
 import { useHealth } from "@/modules/health/useHealth"
+import { useNotes } from "@/modules/notes/useNotes"
 import { useReminders } from "@/modules/reminders/useReminders"
 import { useSubscriptions } from "@/modules/subscriptions/useSubscriptions"
 import { useVehicles } from "@/modules/vehicles/useVehicles"
@@ -59,8 +60,16 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
   const health = useHealth()
   const vehicles = useVehicles()
   const reminders = useReminders()
+  const notes = useNotes()
   const loading =
-    finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading || reminders.loading
+    finance.loading ||
+    bills.loading ||
+    subs.loading ||
+    docs.loading ||
+    health.loading ||
+    vehicles.loading ||
+    reminders.loading ||
+    notes.loading
 
   const items = loading
     ? []
@@ -83,6 +92,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
           },
           { profiles: [], entries: [], medications: [] } as Parameters<typeof buildSearchIndex>[0]["health"],
         ),
+        notes: { notes: notes.notes, folders: notes.folders },
       })
 
   const groups = new Map<string, SearchItem[]>()
@@ -98,7 +108,7 @@ function SearchPanel({ onNavigate }: { onNavigate: () => void }) {
       <CommandInput
         value={search}
         onValueChange={setSearch}
-        placeholder="Buscar documento, conta, placa, apólice, médico…"
+        placeholder="Buscar nota, documento, conta, placa, apólice…"
       />
       <CommandList className="max-h-[60svh]">
         {loading && search && (

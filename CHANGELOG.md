@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Notes** module: Markdown notes in nested folders, edited in a Tiptap editor that reads and writes plain Markdown (headings, emphasis, links, lists, checklists, quotes, code, images). Each note is its own `notes/<id>.md` file on Drive; the tree and titles live in `notes.json`. Autosave while typing, a conflict prompt when the note changed on another device, pasted Markdown formatted on paste, pasted or dropped images uploaded as attachments, `.md` import into any folder, and notes in the global search.
+- Offline reading of notes: the tree and every note are copied to IndexedDB in the background (images once opened). Offline, the app opens even with an expired session and shows notes read-only. The copy is tied to the account and erased on sign-out.
+- Backups (on Drive and the downloaded `.json`) include every note, and restoring brings them back.
 - Cartões tab inside Contas: credit cards with bank, last 4 digits, limit, closing and due day; the month's statement (pay, enter, history) and the subscriptions charged to each card with their monthly total. Cards are bills, so statements show in Contas and Início. Subscriptions pick the card from a list (or "Outra forma").
 - **Reminders** module for things that aren't bills: one-time or repeating daily, weekly (chosen weekdays), monthly or yearly, every N units, from a start date. Per-occurrence done (with an undo toast) and snooze by a day or a week, a heads-up from the day itself up to a month before, end/reactivate for repeating ones and a "Concluídos" tab. Only the latest missed occurrence is listed.
 - Reminders on the Início page (in the agenda, and in "Precisa de atenção" from their heads-up day, with a button to mark them done there) and in the global search.

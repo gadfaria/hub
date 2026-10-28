@@ -6,6 +6,7 @@ import {
   HeartPulseIcon,
   IdCardIcon,
   LandmarkIcon,
+  NotebookPenIcon,
   PiggyBankIcon,
   PillIcon,
   ReceiptTextIcon,
@@ -20,6 +21,7 @@ import { DOCUMENT_TYPES, documentLabel, formatAddress, type PersonalDocument, ty
 import { ACCOUNT_TYPES, INVESTMENT_KINDS, accountLabel, type Investment } from "@/modules/finance/types"
 import type { InstitutionGroup } from "@/modules/finance/useFinance"
 import { ENTRY_KINDS, type HealthEntry, type HealthProfile, type Medication } from "@/modules/health/types"
+import { UNTITLED, folderPath, type Note, type NoteFolder } from "@/modules/notes/types"
 import { scheduleLabel as reminderSchedule, type Reminder } from "@/modules/reminders/types"
 import { CYCLES, categoryLabel, type Subscription } from "@/modules/subscriptions/types"
 import { SERVICE_TYPES, vehicleLabel } from "@/modules/vehicles/types"
@@ -46,6 +48,7 @@ export interface SearchSources {
   profiles: PersonalProfile[]
   vehicles: VehicleSummary[]
   health: { profiles: HealthProfile[]; entries: HealthEntry[]; medications: Medication[] }
+  notes: { notes: Note[]; folders: NoteFolder[] }
 }
 
 const clean = (parts: (string | undefined | false)[]) => parts.filter(Boolean).join(" · ")
@@ -230,6 +233,19 @@ export function buildSearchIndex(s: SearchSources): SearchItem[] {
       subtitle: clean([medication.person, medication.dosage, medication.frequency]),
       keywords: [medication.notes, "remédio", "medicamento"],
       href: "#/health",
+    })
+  }
+
+  for (const note of s.notes.notes) {
+    const path = folderPath(s.notes.folders, note.folderId)
+    items.push({
+      id: `note-${note.id}`,
+      group: "Notas",
+      icon: NotebookPenIcon,
+      title: note.title || UNTITLED,
+      subtitle: path.join(" / "),
+      keywords: ["nota"],
+      href: `#/notes/${note.id}`,
     })
   }
 

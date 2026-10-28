@@ -16,6 +16,7 @@ Modules are fixed and defined in code. Currently:
 
 - **Início** — the landing page. Greets you, sums up net worth, fixed monthly spending (bills + subscriptions) and what's left to pay this month, lists what needs attention across every module (overdue bills, expired or expiring documents, insurance to renew, upcoming follow-ups, stale balances, due reminders) and an agenda of the next 30 days. Reminders can be marked done right from the list.
 - **Reminders** — for what isn't a bill or a subscription: one-time, or repeating every N days, weeks (on chosen weekdays), months or years from a start date. Each occurrence can be marked done (with undo) or snoozed by a day or a week, and a reminder can start asking for attention up to a month ahead. Only the latest missed occurrence is shown, so a daily reminder never piles up. Repeating reminders can be ended and reactivated; done one-time and ended ones move to "Concluídos".
+- **Notes** — Markdown notes in folders. The editor (Tiptap) is visual but reads and writes plain Markdown: headings, bold/italic/strike, links, lists, checklists, quotes, code and images. Pasting Markdown text formats it; pasting or dropping an image uploads it to `attachments/` and writes `![name](attachment:<fileId>)`. Notes save themselves while you type, and a save is refused (with a choice of which version to keep) when the note changed on another device since it was opened. Folders can be nested, renamed, moved and deleted with their contents; `.md` files can be imported into any folder. Notes stay readable offline (see below).
 - **Finance** — accounts by institution (bank, brokerage, crypto…), each with a history of dated balances. Net worth is the sum of every account's latest balance; the chart shows how it evolved over time. An "Investimentos" tab tracks each application (CDB, LCI, LCA, Tesouro…) with amount, rate, dates and maturity, warns before it matures and computes the return (total and annualized) on redemption. Investments are a detail of the balances and never add to net worth.
 - **Bills** — bills with varying amounts (rent, condo, electricity, water, gas, credit card statement, taxes…), due monthly, bimonthly, quarterly, semiannually, yearly or just once: due day, payment method and an estimate per bill, then each due month's real amount, payment date and boleto/statement file. Less frequent bills repeat every cycle from their first due month. A month selector shows what's paid, pending or overdue, and each bill has a chart and average of its last 12 months (or last 12 due dates).
 - **Cards** (a tab inside Contas, `#/bills/cards`) — credit cards are bills of category "Fatura do cartão" with extra details in `bills.json` (bank, last 4 digits only, limit, closing day), so each statement shows in Contas and on the home agenda. Each card shows the month's statement (amount, paid or pending, pay/enter/history), its limit and the subscriptions charged to it (`cardId`) with their monthly total. The full number, CVV or password are never stored.
@@ -49,11 +50,14 @@ db-vault/
     documents.json
     health.json
   attachments/      ← uploaded files (images, PDFs), tagged with the owning module
+  notes/
+    <id>.md         ← one Markdown file per note; the folder tree and titles are in data/notes.json
 
 backup-db-vault/
   2026-10-24 14h30/ ← one folder per backup
     finance.json
     …
+    <id>.md         ← every note
 ```
 
 Every file is tagged with `appProperties.vault` (`root`, `data`, `attachments`, `collection`), so the app finds them by query rather than by name: renaming or moving the folder doesn't break anything. With the `drive.file` scope the app only sees files it created itself.
@@ -62,8 +66,8 @@ Every file is tagged with `appProperties.vault` (`root`, `data`, `attachments`, 
 
 The **Backup** item at the bottom of the sidebar:
 
-- **Fazer backup no Drive** copies every module's JSON file (server-side, nothing is downloaded) into a new `backup-db-vault/<date time>/` folder at the root of your Drive. Attachments aren't copied: the app never overwrites them, it only moves removed ones to the trash.
-- **Baixar cópia (.json)** downloads a single JSON file with every module's data, for an offline copy that doesn't depend on your Google account.
+- **Fazer backup no Drive** copies every module's JSON file and every note (server-side, nothing is downloaded) into a new `backup-db-vault/<date time>/` folder at the root of your Drive. Attachments aren't copied: the app never overwrites them, it only moves removed ones to the trash.
+- **Baixar cópia (.json)** downloads a single JSON file with every module's data and every note's Markdown, for an offline copy that doesn't depend on your Google account.
 - **Restore**, from any backup in the list or from a downloaded `.json`, replaces the data of the modules present in the backup (other modules are left untouched). A restore overwrites instead of merging, since merging keeps the newest version of each item and an older backup would never win. Before restoring, the app automatically backs up the current state, so a restore can always be undone. Records that point to attachments removed after the backup may need those files restored from the Drive trash.
 
 Removing a file from a record moves it to the Drive trash (recoverable for 30 days); nothing is deleted outright.
@@ -115,7 +119,8 @@ The dev server runs on port 5180 (fixed, since it must match the OAuth origins).
 
 On the phone, open the site and use **Compartilhar → Adicionar à Tela de Início** (iPhone, Safari) or **⋮ → Instalar app** (Android, Chrome). It opens full screen like an app.
 
-- **Offline app shell:** `public/sw.js` caches the page, bundles, fonts and icons, so the app opens without internet (pages network-first, hashed assets cache-first, old bundles pruned). Drive data is never cached: it needs a connection, and a banner says so when offline.
+- **Offline app shell:** `public/sw.js` caches the page, bundles, fonts and icons, so the app opens without internet (pages network-first, hashed assets cache-first, old bundles pruned). Drive data needs a connection, and a banner says so when offline.
+- **Offline notes (read-only):** notes are the one exception. Each time the Notes screen loads from Drive, the tree and every note changed since the last visit are copied to the device's IndexedDB (`src/lib/offline-store.ts`); images are copied once opened. Offline, the app opens even with an expired session and shows notes from that copy, without editing. The copy is tagged with the account and erased on sign-out.
 - **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://vault.gadfaria.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
 - The service worker only registers in production builds; test it with `npm run build && npm run preview`.
 

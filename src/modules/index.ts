@@ -5,6 +5,7 @@ import { documents } from './documents'
 import { finance } from './finance'
 import { health } from './health'
 import { home } from './home'
+import { notes } from './notes'
 import { reminders } from './reminders'
 import { vehicles } from './vehicles'
 
@@ -25,7 +26,7 @@ export interface VaultModule {
  * Every area of the vault, in sidebar order; the first one is the landing page.
  * To add one, create src/modules/<id>/ and register it here.
  */
-export const MODULES: VaultModule[] = [home, reminders, finance, bills, vehicles, documents, health]
+export const MODULES: VaultModule[] = [home, reminders, notes, finance, bills, vehicles, documents, health]
 
 /** A page inside a module that keeps its own collection file, e.g. Assinaturas under Contas. */
 export interface SubPage {

@@ -20,6 +20,8 @@ export interface DriveFile {
   appProperties?: Record<string, string>
   /** RFC 3339, only present in list results */
   createdTime?: string
+  /** RFC 3339, changes on every content or metadata update */
+  modifiedTime?: string
 }
 
 interface FileMetadata {
@@ -30,6 +32,7 @@ interface FileMetadata {
 }
 
 const FILE_FIELDS = 'id,name,mimeType,appProperties'
+const MARKDOWN_MIME = 'text/markdown'
 
 /** Thin wrapper over the Drive v3 REST API. Only sees files this app created (drive.file scope). */
 export class DriveClient {
@@ -49,16 +52,23 @@ export class DriveClient {
   }
 
   async list(q: string, orderBy = 'createdTime'): Promise<DriveFile[]> {
-    const params = new URLSearchParams({
-      q: `${q} and trashed = false`,
-      fields: `files(${FILE_FIELDS},createdTime)`,
-      orderBy,
-      pageSize: '1000',
-      spaces: 'drive',
-    })
-    const res = await this.request(`${API}/files?${params}`)
-    const body = (await res.json()) as { files: DriveFile[] }
-    return body.files
+    const files: DriveFile[] = []
+    let pageToken: string | undefined
+    do {
+      const params = new URLSearchParams({
+        q: `${q} and trashed = false`,
+        fields: `nextPageToken,files(${FILE_FIELDS},createdTime,modifiedTime)`,
+        orderBy,
+        pageSize: '1000',
+        spaces: 'drive',
+      })
+      if (pageToken) params.set('pageToken', pageToken)
+      const res = await this.request(`${API}/files?${params}`)
+      const body = (await res.json()) as { files: DriveFile[]; nextPageToken?: string }
+      files.push(...body.files)
+      pageToken = body.nextPageToken
+    } while (pageToken)
+    return files
   }
 
   async createFolder(name: string, parentId?: string, appProperties?: Record<string, string>): Promise<DriveFile> {
@@ -101,6 +111,56 @@ export class DriveClient {
       body,
     })
     return res.json()
+  }
+
+  /** Creates a Markdown file with its content in one multipart request. */
+  async createMarkdown(
+    name: string,
+    parentId: string,
+    text: string,
+    appProperties?: Record<string, string>,
+  ): Promise<DriveFile> {
+    const metadata: FileMetadata = { name, mimeType: MARKDOWN_MIME, parents: [parentId], appProperties }
+    const boundary = `vault-${crypto.randomUUID()}`
+    const body = [
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(metadata),
+      `--${boundary}`,
+      `Content-Type: ${MARKDOWN_MIME}; charset=UTF-8`,
+      '',
+      text,
+      `--${boundary}--`,
+    ].join('\r\n')
+    const res = await this.request(`${UPLOAD}/files?uploadType=multipart&fields=${FILE_FIELDS},modifiedTime`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body,
+    })
+    return res.json()
+  }
+
+  /** Replaces a text file's content and returns its new modifiedTime. */
+  async updateMarkdown(fileId: string, text: string): Promise<string> {
+    const res = await this.request(`${UPLOAD}/files/${fileId}?uploadType=media&fields=modifiedTime`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': `${MARKDOWN_MIME}; charset=UTF-8` },
+      body: text,
+    })
+    const body = (await res.json()) as { modifiedTime: string }
+    return body.modifiedTime
+  }
+
+  async readText(fileId: string): Promise<string> {
+    const res = await this.request(`${API}/files/${fileId}?alt=media`)
+    return res.text()
+  }
+
+  async modifiedTime(fileId: string): Promise<string> {
+    const res = await this.request(`${API}/files/${fileId}?fields=modifiedTime`)
+    const body = (await res.json()) as { modifiedTime: string }
+    return body.modifiedTime
   }
 
   async readJson<T>(fileId: string): Promise<T> {

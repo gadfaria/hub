@@ -10,20 +10,40 @@ import type { DriveClient, DriveFile } from './drive'
  *       <key>.json      role=collection, collection=<key>
  *     attachments/      role=attachments
  *       <file>          role=attachment, module=<key>
+ *     notes/            role=notes
+ *       <id>.md         role=note, noteId=<id>
  *
  *   backup-db-vault/    role=backupRoot
  *     2026-10-24 14h30/ role=backup
  *       <key>.json      role=backupFile, collection=<key>
+ *       <id>.md         role=backupNote, noteId=<id>
  *
  * Collections are fixed in code (see src/modules); each one is a single JSON file.
+ * Notes keep their Markdown in their own files, so typing in one never rewrites the others.
  */
-type Role = 'root' | 'data' | 'attachments' | 'collection' | 'backupRoot' | 'backup'
+type Role = 'root' | 'data' | 'attachments' | 'collection' | 'notes' | 'note' | 'backupRoot' | 'backup' | 'backupNote'
 
-const ROLES: Role[] = ['root', 'data', 'attachments', 'collection']
+const ROLES: Role[] = ['root', 'data', 'attachments', 'collection', 'notes']
 
 function roleQuery(roles: Role[]): string {
   const clauses = roles.map((role) => `appProperties has { key='vault' and value='${role}' }`)
   return `(${clauses.join(' or ')})`
+}
+
+/** Where a note's Markdown lives on Drive, and the version last seen. */
+export interface NoteFile {
+  noteId: string
+  fileId: string
+  /** RFC 3339 */
+  modifiedTime: string
+}
+
+/** The note changed on Drive (another device) since the version the save was based on. */
+export class NoteConflictError extends Error {
+  constructor() {
+    super('A nota foi alterada em outro aparelho.')
+    this.name = 'NoteConflictError'
+  }
 }
 
 export interface BackupInfo {
@@ -57,6 +77,8 @@ export class Vault {
   private rootId = ''
   private dataId = ''
   private attachmentsId = ''
+  private notesId: Promise<string> | undefined
+  private readonly noteFiles = new Map<string, NoteFile>()
   private opening: Promise<void> | undefined
   private readonly collectionFiles = new Map<string, Promise<string>>()
   private readonly writes = new Map<string, Promise<unknown>>()
@@ -88,6 +110,9 @@ export class Vault {
     this.attachmentsId =
       first('attachments')?.id ?? (await this.drive.createFolder('attachments', this.rootId, { vault: 'attachments' })).id
 
+    const notes = first('notes')
+    if (notes) this.notesId = Promise.resolve(notes.id)
+
     for (const file of files) {
       const key = file.appProperties?.collection
       if (file.appProperties?.vault === 'collection' && key && !this.collectionFiles.has(key)) {
@@ -116,6 +141,86 @@ export class Vault {
     return this.drive.trash(fileId)
   }
 
+  /** Every note file with its current version, from a single listing. */
+  async listNoteFiles(): Promise<NoteFile[]> {
+    await this.open()
+    const files = await this.drive.list(roleQuery(['note']))
+    for (const file of files) {
+      const noteId = file.appProperties?.noteId
+      // Oldest first, so a duplicate created by a race never replaces the original.
+      if (noteId && !this.noteFiles.has(noteId)) {
+        this.noteFiles.set(noteId, { noteId, fileId: file.id, modifiedTime: file.modifiedTime ?? '' })
+      }
+    }
+    return [...this.noteFiles.values()]
+  }
+
+  readNote(fileId: string): Promise<string> {
+    return this.drive.readText(fileId)
+  }
+
+  /** A note's file with its current version on Drive (one small request), or null if it has none. */
+  async noteVersion(noteId: string): Promise<NoteFile | null> {
+    const known = this.noteFiles.get(noteId)
+    if (!known) return null
+    const file = { ...known, modifiedTime: await this.drive.modifiedTime(known.fileId) }
+    this.noteFiles.set(noteId, file)
+    return file
+  }
+
+  /**
+   * Writes a note's Markdown, creating its file the first time. With `expected`, the
+   * save is refused (NoteConflictError) when Drive has a newer version than that one.
+   * Writes to the same note run one at a time, so a quick second save never creates
+   * a second file or skips the check.
+   */
+  writeNote(noteId: string, text: string, expected?: string): Promise<NoteFile> {
+    const key = `note:${noteId}`
+    const previous = this.writes.get(key) ?? Promise.resolve()
+    const next = previous.catch(() => undefined).then(() => this.writeNoteNow(noteId, text, expected))
+    this.writes.set(key, next)
+    return next
+  }
+
+  private async writeNoteNow(noteId: string, text: string, expected?: string): Promise<NoteFile> {
+    await this.open()
+    const known = this.noteFiles.get(noteId)
+    let file: NoteFile
+    if (known) {
+      if (expected !== undefined && (await this.drive.modifiedTime(known.fileId)) !== expected) {
+        throw new NoteConflictError()
+      }
+      file = { ...known, modifiedTime: await this.drive.updateMarkdown(known.fileId, text) }
+    } else {
+      const created = await this.drive.createMarkdown(`${noteId}.md`, await this.notesFolder(), text, {
+        vault: 'note',
+        noteId,
+      })
+      file = { noteId, fileId: created.id, modifiedTime: created.modifiedTime ?? '' }
+    }
+    this.noteFiles.set(noteId, file)
+    return file
+  }
+
+  /** Moves a deleted note's file to the Drive trash (recoverable for 30 days). */
+  async trashNote(noteId: string): Promise<void> {
+    const known = this.noteFiles.get(noteId)
+    if (!known) return
+    await this.drive.trash(known.fileId)
+    this.noteFiles.delete(noteId)
+  }
+
+  private notesFolder(): Promise<string> {
+    this.notesId ??= this.drive
+      .createFolder('notes', this.rootId, { vault: 'notes' })
+      .then((folder) => folder.id)
+      .catch((err) => {
+        this.notesId = undefined
+        throw err
+      })
+    return this.notesId
+  }
+
   /** Backups are folders inside backup-db-vault/ (at the Drive root), newest first. */
   async listBackups(): Promise<BackupInfo[]> {
     const folders = await this.drive.list(roleQuery(['backup']), 'createdTime desc')
@@ -123,8 +228,8 @@ export class Vault {
   }
 
   /**
-   * Copies every collection file into a new dated folder. Copies run on Drive's side,
-   * so nothing is downloaded. Attachments are not copied: the app never overwrites them.
+   * Copies every collection file and note into a new dated folder. Copies run on Drive's
+   * side, so nothing is downloaded. Attachments are not copied: the app never overwrites them.
    */
   async backup(): Promise<BackupInfo & { files: number }> {
     await this.open()
@@ -137,7 +242,11 @@ export class Vault {
       const fileId = await this.collectionFiles.get(key)!
       await this.drive.copy(fileId, `${key}.json`, folder.id, { vault: 'backupFile', collection: key })
     }
-    return { id: folder.id, name, createdTime: new Date().toISOString(), files: keys.length }
+    const notes = await this.listNoteFiles()
+    for (const note of notes) {
+      await this.drive.copy(note.fileId, `${note.noteId}.md`, folder.id, { vault: 'backupNote', noteId: note.noteId })
+    }
+    return { id: folder.id, name, createdTime: new Date().toISOString(), files: keys.length + notes.length }
   }
 
   /** Every collection's content, keyed by collection, for a local download. */
@@ -149,6 +258,35 @@ export class Vault {
       result[key] = await this.drive.readJson(await this.collectionFiles.get(key)!)
     }
     return result
+  }
+
+  /** Every note's Markdown, keyed by note id, for a local download. */
+  async exportNotes(): Promise<Record<string, string>> {
+    const result: Record<string, string> = {}
+    for (const note of await this.listNoteFiles()) result[note.noteId] = await this.drive.readText(note.fileId)
+    return result
+  }
+
+  /** Reads every note inside a backup folder, keyed by note id. */
+  async readBackupNotes(folderId: string): Promise<Record<string, string>> {
+    const files = await this.drive.list(
+      `'${folderId}' in parents and appProperties has { key='vault' and value='backupNote' }`,
+    )
+    const result: Record<string, string> = {}
+    for (const file of files) {
+      const noteId = file.appProperties?.noteId
+      if (noteId) result[noteId] = await this.drive.readText(file.id)
+    }
+    return result
+  }
+
+  /** Overwrites (or recreates) each given note's file. Notes not in `notes` are left untouched. */
+  async restoreNotes(notes: Record<string, string>): Promise<void> {
+    await this.listNoteFiles()
+    for (const [noteId, text] of Object.entries(notes)) {
+      if (typeof text !== 'string') throw new Error(`O backup tem uma nota inválida: ${noteId}`)
+      await this.writeNote(noteId, text)
+    }
   }
 
   /** Reads every collection file inside a backup folder, keyed by collection. */

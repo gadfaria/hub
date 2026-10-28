@@ -47,6 +47,8 @@ function moduleNames(keys: string[]): string {
 interface PendingRestore {
   source: string
   collections: Record<string, unknown>
+  /** Each note's Markdown, keyed by note id (backups made before notes existed have none) */
+  notes: Record<string, string>
 }
 
 type Busy = "drive" | "download" | "read" | "restore" | null
@@ -105,7 +107,8 @@ function BackupPanel() {
     setBusy("download")
     try {
       const collections = await vault.exportAll()
-      const payload = { app: "db-vault", schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), collections }
+      const notes = await vault.exportNotes()
+      const payload = { app: "db-vault", schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), collections, notes }
       const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }))
       const link = document.createElement("a")
       link.href = url
@@ -124,8 +127,9 @@ function BackupPanel() {
     setReadingId(backup.id)
     try {
       const collections = await vault.readBackup(backup.id)
+      const notes = await vault.readBackupNotes(backup.id)
       if (Object.keys(collections).length === 0) toast.error("Esse backup está vazio.")
-      else setRestoring({ source: `o backup ${backup.name}`, collections })
+      else setRestoring({ source: `o backup ${backup.name}`, collections, notes })
     } catch (err) {
       reportError(err)
     } finally {
@@ -138,11 +142,18 @@ function BackupPanel() {
     try {
       const parsed = JSON.parse(await file.text())
       const collections = parsed?.collections
-      if (parsed?.app !== "db-vault" || typeof collections !== "object" || collections === null) {
+      const notes = parsed?.notes ?? {}
+      if (
+        parsed?.app !== "db-vault" ||
+        typeof collections !== "object" ||
+        collections === null ||
+        typeof notes !== "object" ||
+        notes === null
+      ) {
         throw new Error("not a db-vault export")
       }
       if (Object.keys(collections).length === 0) toast.error("Esse arquivo não tem dados.")
-      else setRestoring({ source: `o arquivo ${file.name}`, collections })
+      else setRestoring({ source: `o arquivo ${file.name}`, collections, notes })
     } catch {
       toast.error("Arquivo inválido", { description: 'Use um .json gerado em "Baixar cópia".' })
     }
@@ -155,6 +166,7 @@ function BackupPanel() {
       // Safety net: snapshot the current data first, so a wrong restore can be undone.
       const safety = await vault.backup()
       const keys = await vault.restore(restoring.collections)
+      await vault.restoreNotes(restoring.notes)
       toast.success("Dados restaurados", {
         description: `${moduleNames(keys)}. O estado anterior ficou salvo no backup ${safety.name}.`,
       })
@@ -172,7 +184,7 @@ function BackupPanel() {
       <DialogHeader>
         <DialogTitle>Backup</DialogTitle>
         <DialogDescription>
-          Copia os dados de todos os módulos para a pasta{" "}
+          Copia os dados de todos os módulos, notas incluídas, para a pasta{" "}
           <span className="font-mono whitespace-nowrap">backup-db-vault</span> do seu Drive, numa pasta com a data e
           hora. Os anexos não são copiados: eles já ficam no Drive.
         </DialogDescription>

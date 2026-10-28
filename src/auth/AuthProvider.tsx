@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { clearOffline } from '@/lib/offline-store'
 import { AuthContext } from './context'
 import {
   clearSession,
@@ -34,6 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     clearSession()
+    // The offline copy of notes belongs to this account: never leave it on the device.
+    void clearOffline()
     setSession(null)
     setExpired(false)
   }, [setSession])
