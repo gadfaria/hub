@@ -1,27 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { EditorContent, ReactNodeViewRenderer, useEditor, useEditorState, type Editor } from '@tiptap/react'
+import { EditorContent, ReactNodeViewRenderer, useEditor, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
 import Image from '@tiptap/extension-image'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { Placeholder } from '@tiptap/extensions'
-import {
-  BoldIcon,
-  CodeIcon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  ImageIcon,
-  ItalicIcon,
-  LinkIcon,
-  ListChecksIcon,
-  ListIcon,
-  ListOrderedIcon,
-  QuoteIcon,
-  SquareCodeIcon,
-  StrikethroughIcon,
-  type LucideIcon,
-} from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -33,9 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Toggle } from '@/components/ui/toggle'
 import { useAttachments } from '@/storage/useAttachments'
 import { ATTACHMENT_PREFIX, NoteImage } from './NoteImage'
 import { UNTITLED, type Note } from './types'
@@ -294,8 +275,6 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
         )}
       </div>
 
-      {!readOnly && <Toolbar editor={editor} onImages={insertImages} />}
-
       <EditorContent editor={editor} />
 
       <AlertDialog open={conflict}>
@@ -313,100 +292,6 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  )
-}
-
-interface ToolbarItem {
-  label: string
-  icon: LucideIcon
-  active: (editor: Editor) => boolean
-  run: (editor: Editor) => void
-}
-
-const TOOLBAR: ToolbarItem[][] = [
-  [
-    { label: 'Título 1', icon: Heading1Icon, active: (e) => e.isActive('heading', { level: 1 }), run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run() },
-    { label: 'Título 2', icon: Heading2Icon, active: (e) => e.isActive('heading', { level: 2 }), run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
-    { label: 'Título 3', icon: Heading3Icon, active: (e) => e.isActive('heading', { level: 3 }), run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
-  ],
-  [
-    { label: 'Negrito', icon: BoldIcon, active: (e) => e.isActive('bold'), run: (e) => e.chain().focus().toggleBold().run() },
-    { label: 'Itálico', icon: ItalicIcon, active: (e) => e.isActive('italic'), run: (e) => e.chain().focus().toggleItalic().run() },
-    { label: 'Tachado', icon: StrikethroughIcon, active: (e) => e.isActive('strike'), run: (e) => e.chain().focus().toggleStrike().run() },
-    { label: 'Código', icon: CodeIcon, active: (e) => e.isActive('code'), run: (e) => e.chain().focus().toggleCode().run() },
-    {
-      label: 'Link',
-      icon: LinkIcon,
-      active: (e) => e.isActive('link'),
-      run: (e) => {
-        if (e.isActive('link')) {
-          e.chain().focus().extendMarkRange('link').unsetLink().run()
-          return
-        }
-        const url = window.prompt('Endereço do link')?.trim()
-        if (!url) return
-        const href = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`
-        e.chain().focus().extendMarkRange('link').setLink({ href }).run()
-      },
-    },
-  ],
-  [
-    { label: 'Lista', icon: ListIcon, active: (e) => e.isActive('bulletList'), run: (e) => e.chain().focus().toggleBulletList().run() },
-    { label: 'Lista numerada', icon: ListOrderedIcon, active: (e) => e.isActive('orderedList'), run: (e) => e.chain().focus().toggleOrderedList().run() },
-    { label: 'Checklist', icon: ListChecksIcon, active: (e) => e.isActive('taskList'), run: (e) => e.chain().focus().toggleTaskList().run() },
-    { label: 'Citação', icon: QuoteIcon, active: (e) => e.isActive('blockquote'), run: (e) => e.chain().focus().toggleBlockquote().run() },
-    { label: 'Bloco de código', icon: SquareCodeIcon, active: (e) => e.isActive('codeBlock'), run: (e) => e.chain().focus().toggleCodeBlock().run() },
-  ],
-]
-
-function Toolbar({ editor, onImages }: { editor: Editor; onImages: (files: File[]) => Promise<boolean> }) {
-  const fileInput = useRef<HTMLInputElement>(null)
-  // Re-renders only when an active state changes, not on every keystroke.
-  const active = useEditorState({
-    editor,
-    selector: ({ editor }) => TOOLBAR.flat().map((item) => item.active(editor)),
-  })
-  let index = 0
-
-  return (
-    <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-0.5 border-b bg-background/95 px-1 py-1 backdrop-blur">
-      {TOOLBAR.map((group, g) => (
-        <div key={g} className="flex items-center gap-0.5">
-          {g > 0 && <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />}
-          {group.map((item) => {
-            const pressed = active[index++]
-            return (
-              <Toggle
-                key={item.label}
-                size="sm"
-                pressed={pressed}
-                onPressedChange={() => item.run(editor)}
-                aria-label={item.label}
-                title={item.label}
-              >
-                <item.icon />
-              </Toggle>
-            )
-          })}
-        </div>
-      ))}
-      <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          const files = [...(e.target.files ?? [])]
-          e.target.value = ''
-          void onImages(files)
-        }}
-      />
-      <Toggle size="sm" pressed={false} onPressedChange={() => fileInput.current?.click()} aria-label="Imagem" title="Imagem">
-        <ImageIcon />
-      </Toggle>
     </div>
   )
 }
