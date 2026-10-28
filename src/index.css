@@ -193,6 +193,26 @@
   .note-content pre code {
     @apply bg-transparent p-0 text-inherit;
   }
+  .note-content .tableWrapper {
+    @apply overflow-x-auto;
+  }
+  .note-content table {
+    @apply w-full border-collapse text-sm;
+  }
+  .note-content th,
+  .note-content td {
+    @apply border px-2 py-1.5 text-left align-top;
+  }
+  .note-content th {
+    @apply bg-muted font-medium;
+  }
+  .note-content th > p,
+  .note-content td > p {
+    @apply my-0;
+  }
+  .note-content .selectedCell {
+    @apply bg-accent;
+  }
   .note-content hr {
     @apply my-6 border-t;
   }

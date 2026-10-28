@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { EditorContent, ReactNodeViewRenderer, useEditor, type Editor } from '@tiptap/react'
+import { EditorContent, Extension, ReactNodeViewRenderer, useEditor, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
 import Image from '@tiptap/extension-image'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
+import { TableKit } from '@tiptap/extension-table'
 import { Placeholder } from '@tiptap/extensions'
 import { toast } from 'sonner'
 import {
@@ -30,8 +31,16 @@ const NoteImageNode = Image.extend({
   },
 })
 
+/** ⌘⌥T / Ctrl+Alt+T inserts a 3×3 table; Tab moves between cells and adds a row from the last one. */
+const TableShortcut = Extension.create({
+  name: 'tableShortcut',
+  addKeyboardShortcuts() {
+    return { 'Mod-Alt-t': () => this.editor.commands.insertTable({ rows: 3, cols: 3, withHeaderRow: true }) }
+  },
+})
+
 /** Plain text that is clearly Markdown is pasted as formatted content instead of literal symbols. */
-const MARKDOWN_HINT = /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s|```)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)/m
+const MARKDOWN_HINT = /^(#{1,6}\s|\s*[-*+]\s|\s*\d+\.\s|>\s|```|\|.*\|\s*$)|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)/m
 
 interface NoteEditorProps {
   note: Note
@@ -159,6 +168,8 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
       TaskList,
       TaskItem.configure({ nested: true }),
       NoteImageNode,
+      TableKit.configure({ table: { resizable: false } }),
+      TableShortcut,
       Placeholder.configure({ placeholder: 'Escreva aqui…' }),
     ],
     content: initial.markdown,
