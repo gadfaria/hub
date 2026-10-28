@@ -43,6 +43,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 - Unused Vite template assets (`icons.svg`, Vite favicon).
 
+### Fixed
+- ⌘B / Ctrl+B no longer toggles the sidebar while typing in a text field or the notes editor, so it can make text bold.
+
 ### Changed
 - Notes editor: the formatting toolbar is gone; formatting comes from Markdown typed inline and keyboard shortcuts, and images are added by pasting or dropping them.
 - Assinaturas moved into Contas as a second tab (Contas | Assinaturas, `#/bills/subscriptions`), one sidebar entry less. Data stays in its own file; search and backups still list it as Assinaturas.
