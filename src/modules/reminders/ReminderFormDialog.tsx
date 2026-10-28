@@ -39,6 +39,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
   const [title, setTitle] = useState(reminder?.title ?? '')
   const [frequency, setFrequency] = useState<ReminderFrequency>(reminder?.frequency ?? 'once')
   const [startDate, setStartDate] = useState(reminder?.startDate ?? today())
+  const [endDate, setEndDate] = useState(reminder?.endDate ?? '')
   const [every, setEvery] = useState(String(reminder?.interval ?? 1))
   const [weekdays, setWeekdays] = useState<number[]>(reminder?.weekdays ?? [])
   const [leadDays, setLeadDays] = useState(String(reminder?.leadDays ?? 0))
@@ -50,6 +51,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
   const valid =
     title.trim() !== '' &&
     /^\d{4}-\d{2}-\d{2}$/.test(startDate) &&
+    (endDate === '' || endDate >= startDate) &&
     (!repeats || step >= 1) &&
     (frequency !== 'weekly' || weekdays.length > 0)
 
@@ -67,6 +69,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
       title: title.trim(),
       frequency,
       startDate,
+      endDate,
       interval: repeats ? step : 1,
       weekdays: frequency === 'weekly' ? weekdays : [],
       leadDays: Number(leadDays),
@@ -95,7 +98,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
             autoFocus
           />
         </Field>
-        <Field label="Repetição" id="reminder-frequency">
+        <Field label="Repetição" id="reminder-frequency" className="col-span-2 sm:col-span-1">
           <Select value={frequency} onValueChange={(v) => changeFrequency(v as ReminderFrequency)}>
             <SelectTrigger id="reminder-frequency" className="w-full">
               <SelectValue />
@@ -109,24 +112,7 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
             </SelectContent>
           </Select>
         </Field>
-        <Field label={repeats ? 'Começa em' : 'Data'} id="reminder-start">
-          <Input id="reminder-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </Field>
-        {repeats && (
-          <Field label="Repetir a cada" id="reminder-interval">
-            <div className="flex items-center gap-2">
-              <Input
-                id="reminder-interval"
-                value={every}
-                onChange={(e) => setEvery(e.target.value)}
-                inputMode="numeric"
-                className="w-16 tabular-nums"
-              />
-              <span className="text-sm text-muted-foreground">{FREQUENCIES[frequency].unit[step === 1 ? 0 : 1]}</span>
-            </div>
-          </Field>
-        )}
-        <Field label="Avisar" id="reminder-lead" className={repeats ? '' : 'col-span-2'}>
+        <Field label="Avisar" id="reminder-lead" className="col-span-2 sm:col-span-1">
           <Select value={leadDays} onValueChange={setLeadDays}>
             <SelectTrigger id="reminder-lead" className="w-full">
               <SelectValue />
@@ -140,6 +126,34 @@ function ReminderForm({ reminder, onSubmit, onOpenChange, onDelete }: ReminderFo
             </SelectContent>
           </Select>
         </Field>
+        <Field label={repeats ? 'Começa em' : 'Data'} id="reminder-start">
+          <Input id="reminder-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </Field>
+        {/* Repeating: stops repeating after it. One-time: the last day of a period, e.g. a trip. */}
+        <Field label={repeats ? 'Termina em' : 'Até'} optional id="reminder-end">
+          <Input
+            id="reminder-end"
+            type="date"
+            value={endDate}
+            min={startDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            aria-invalid={endDate !== '' && endDate < startDate}
+          />
+        </Field>
+        {repeats && (
+          <Field label="Repetir a cada" id="reminder-interval" className="col-span-2">
+            <div className="flex items-center gap-2">
+              <Input
+                id="reminder-interval"
+                value={every}
+                onChange={(e) => setEvery(e.target.value)}
+                inputMode="numeric"
+                className="w-16 tabular-nums"
+              />
+              <span className="text-sm text-muted-foreground">{FREQUENCIES[frequency].unit[step === 1 ? 0 : 1]}</span>
+            </div>
+          </Field>
+        )}
         {frequency === 'weekly' && (
           <Field label="Dias da semana" id="reminder-weekdays" className="col-span-2">
             <ToggleGroup

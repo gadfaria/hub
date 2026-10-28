@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react'
 import { newSyncable, touch } from '@/domain/merge'
 import type { Syncable } from '@/domain/types'
-import { today } from '@/lib/format'
+import { addDays, today } from '@/lib/format'
 import { useCollection } from '@/storage/useCollection'
-import { around, type Reminder, type ReminderOccurrence, type RemindersData, type ReminderStatus } from './types'
+import { around, occurrences as scheduledDates, periodEnd, type Reminder, type ReminderOccurrence, type RemindersData, type ReminderStatus } from './types'
 
 const EMPTY: RemindersData = { reminders: [], occurrences: [] }
 
@@ -18,6 +18,18 @@ export interface ReminderRow {
   due: string
   occurrence: ReminderOccurrence | undefined
   status: ReminderStatus
+}
+
+/** One occurrence placed on the calendar. */
+export interface CalendarReminder {
+  reminder: Reminder
+  /** The day it falls on (the day it was moved to, when snoozed) */
+  due: string
+  /** Last day of a one-time reminder's period; same as `due` otherwise */
+  until: string
+  done: boolean
+  /** The occurrence the reminder is waiting on, and its day has passed. Older missed ones are not late: they don't pile up. */
+  late: boolean
 }
 
 /** A reminder that is over: ended, or a one-time one already done. */
@@ -56,21 +68,49 @@ export function useReminders() {
         const lastDone = occurrences
           .filter((o) => o.reminderId === reminder.id && o.doneAt)
           .sort((a, b) => b.doneAt.localeCompare(a.doneAt))[0]
-        finished.push({ reminder, finishedOn: lastDone?.doneAt ?? reminder.startDate, occurrence: lastDone })
+        finished.push({
+          reminder,
+          finishedOn: lastDone?.doneAt ?? (reminder.endDate || reminder.startDate),
+          occurrence: lastDone,
+        })
         continue
       }
       const occurrence = date === last ? lastRecord : recordFor(reminder.id, date)
       const due = occurrence?.snoozedTo || date
+      // A one-time period (a trip) is "today" from its first to its last day, and late only after that.
+      const until = periodEnd(reminder, due)
       active.push({
         reminder,
         date,
         due,
         occurrence,
-        status: due < now ? 'overdue' : due === now ? 'today' : 'upcoming',
+        status: until < now ? 'overdue' : due <= now ? 'today' : 'upcoming',
       })
     }
 
+    /** Every occurrence touching [from, to], done or not, in date order. Ended reminders stop at their end. */
+    const pending = new Map(active.map((row) => [row.reminder.id, row]))
+    const inRange = (from: string, to: string): CalendarReminder[] => {
+      const result: CalendarReminder[] = []
+      for (const reminder of (data?.reminders ?? []).filter((r) => !r.deleted)) {
+        for (const date of scheduledDates(reminder)) {
+          // Snoozing moves a day forward by at most weeks; a month of slack keeps those in view.
+          if (date > addDays(to, 31)) break
+          if (reminder.endedAt && date > reminder.endedAt) break
+          const record = recordFor(reminder.id, date)
+          const due = record?.snoozedTo || date
+          const until = periodEnd(reminder, due)
+          if (until < from || due > to) continue
+          const row = pending.get(reminder.id)
+          const late = row?.date === date && row.status === 'overdue'
+          result.push({ reminder, due, until, done: !!record?.doneAt, late })
+        }
+      }
+      return result.sort((a, b) => a.due.localeCompare(b.due))
+    }
+
     return {
+      inRange,
       active: active.sort((a, b) => a.due.localeCompare(b.due) || a.reminder.title.localeCompare(b.reminder.title)),
       finished: finished.sort((a, b) => b.finishedOn.localeCompare(a.finishedOn)),
       all: (data?.reminders ?? []).filter((r) => !r.deleted),

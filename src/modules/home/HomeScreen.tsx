@@ -1,13 +1,13 @@
-import { CheckCircle2Icon, CheckIcon, ChevronRightIcon } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2Icon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { currentMonth, daysUntil, formatDate, formatMoney, shiftMonth, today } from '@/lib/format'
+import { currentMonth, daysUntil, formatDate, formatMonth, shiftMonth, today } from '@/lib/format'
 import { useBills } from '@/modules/bills/useBills'
 import { useDocuments } from '@/modules/documents/useDocuments'
 import { useFinance } from '@/modules/finance/useFinance'
@@ -15,6 +15,7 @@ import { useHealth } from '@/modules/health/useHealth'
 import { useReminders, type ReminderRow } from '@/modules/reminders/useReminders'
 import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions'
 import { useVehicles } from '@/modules/vehicles/useVehicles'
+import { collectCalendar, itemsOn, monthGrid, monthsBetween, type CalendarItem } from './calendar'
 import { AGENDA_DAYS, byUrgency, collectEvents, type HomeEvent, type Severity } from './events'
 
 function greeting(): string {
@@ -71,10 +72,29 @@ export function HomeScreen() {
   const now = today()
   const agenda = events.filter((e) => e.date >= now && daysUntil(e.date) <= AGENDA_DAYS).sort((a, b) => a.date.localeCompare(b.date))
 
-  const billsTotal = billRows.reduce((s, r) => s + r.amount, 0)
-  const open = billRows.filter((r) => r.status !== 'paid')
-  const overdue = open.filter((r) => r.status === 'overdue')
-  const urgent = attention.filter((e) => e.severity !== 'info').length
+  const [shownMonth, setShownMonth] = useState(month)
+  const [selected, setSelected] = useState(now)
+  const grid = monthGrid(shownMonth)
+  const gridFrom = grid[0]
+  const gridTo = grid[grid.length - 1]
+  const calendar = loading
+    ? []
+    : collectCalendar(gridFrom, gridTo, {
+        reminders: reminders.inRange(gridFrom, gridTo),
+        billRows: monthsBetween(gridFrom, gridTo).flatMap((m) => bills.monthRows(m)),
+        subscriptions: subs.active.map((r) => r.subscription),
+        documents: docs.rows,
+        health: health.people.map((person) => ({ person, upcoming: health.forPerson(person).upcoming })),
+        vehicles: vehicles.summaries,
+        investments: finance.activeInvestments,
+      })
+
+  function showMonth(next: string) {
+    setShownMonth(next)
+    // Keep today selected in its own month; elsewhere start from the 1st.
+    setSelected(next === month ? now : `${next}-01`)
+  }
+
   const firstName = session?.name.split(' ')[0] ?? ''
 
   return (
@@ -91,43 +111,22 @@ export function HomeScreen() {
           </p>
         </div>
 
-        <div className="order-2 grid grid-cols-1 gap-4 px-4 @xl/main:order-none *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-          <StatCard
+        <div className="px-4 lg:px-6">
+          <CalendarCard
             loading={loading}
-            href="#/finance"
-            label="Patrimônio"
-            value={formatMoney(finance.total)}
-            headline={finance.lastUpdate ? `Atualizado em ${formatDate(finance.lastUpdate)}` : 'Nenhum saldo registrado'}
-            detail={`${finance.groups.length} ${finance.groups.length === 1 ? 'instituição' : 'instituições'}`}
-          />
-          <StatCard
-            loading={loading}
-            href="#/bills"
-            label="Gasto fixo mensal"
-            value={formatMoney(Math.round(billsTotal + subs.monthlyTotal))}
-            headline={`Contas ${formatMoney(billsTotal)} + assinaturas ${formatMoney(Math.round(subs.monthlyTotal))}`}
-            detail="Neste mês"
-          />
-          <StatCard
-            loading={loading}
-            href="#/bills"
-            label="A pagar este mês"
-            value={formatMoney(open.reduce((s, r) => s + r.amount, 0))}
-            badge={overdue.length ? `${overdue.length} ${overdue.length === 1 ? 'atrasada' : 'atrasadas'}` : undefined}
-            badgeVariant="destructive"
-            headline={open.length ? `${open.length} de ${billRows.length} contas em aberto` : billRows.length ? 'Tudo pago' : 'Nenhuma conta cadastrada'}
-            detail={overdue.length ? overdue.map((r) => r.bill.name).join(', ') : ' '}
-          />
-          <StatCard
-            loading={loading}
-            label="Precisa de atenção"
-            value={String(urgent)}
-            headline={urgent ? `${urgent} ${urgent === 1 ? 'item' : 'itens'} para resolver` : 'Tudo em dia'}
-            detail={`${agenda.length} ${agenda.length === 1 ? 'evento' : 'eventos'} nos próximos ${AGENDA_DAYS} dias`}
+            month={shownMonth}
+            grid={grid}
+            items={calendar}
+            selected={selected}
+            onSelect={(day) => {
+              setSelected(day)
+              if (day.slice(0, 7) !== shownMonth) setShownMonth(day.slice(0, 7))
+            }}
+            onMonth={showMonth}
           />
         </div>
 
-        <div className="order-1 grid grid-cols-1 items-start gap-4 px-4 lg:px-6 @xl/main:order-none @4xl/main:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 px-4 lg:px-6 @4xl/main:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Precisa de atenção</CardTitle>
@@ -240,56 +239,150 @@ function Agenda({ events }: { events: HomeEvent[] }) {
   )
 }
 
-function StatCard({
+const WEEKDAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+/** Items listed inside a day cell on wide screens; the rest become "+N". */
+const CELL_ITEMS = 3
+
+function itemTone(item: CalendarItem): string {
+  if (item.late) return 'text-destructive'
+  if (item.done) return 'text-muted-foreground line-through'
+  // A past occurrence nobody marked: no longer asked for, so just faded.
+  if (item.until < today()) return 'text-muted-foreground'
+  return ''
+}
+
+function CalendarCard({
   loading,
-  href,
-  label,
-  value,
-  badge,
-  badgeVariant = 'outline',
-  headline,
-  detail,
+  month,
+  grid,
+  items,
+  selected,
+  onSelect,
+  onMonth,
 }: {
   loading: boolean
-  href?: string
-  label: string
-  value: string
-  badge?: string
-  badgeVariant?: 'outline' | 'destructive'
-  headline: string
-  detail: string
+  month: string
+  grid: string[]
+  items: CalendarItem[]
+  selected: string
+  onSelect: (day: string) => void
+  onMonth: (month: string) => void
 }) {
+  const now = today()
+  const dayItems = itemsOn(items, selected)
+
   return (
-    <Card className={`@container/card relative ${href ? 'transition-colors hover:border-foreground/30' : ''}`}>
+    <Card>
       <CardHeader>
-        <CardDescription>
-          {href ? (
-            <a href={href} className="after:absolute after:inset-0">
-              {label}
-            </a>
-          ) : (
-            label
-          )}
-        </CardDescription>
-        <CardTitle className="col-span-full truncate text-2xl font-semibold tabular-nums @[340px]/card:text-3xl">
-          {loading ? <Skeleton className="h-9 w-32" /> : value}
-        </CardTitle>
-        {!loading && badge && (
-          <CardAction className="row-span-1">
-            <Badge variant={badgeVariant}>{badge}</Badge>
-          </CardAction>
-        )}
+        <CardTitle className="first-letter:uppercase">{formatMonth(month)}</CardTitle>
+        <CardDescription>Lembretes, contas, cobranças e vencimentos</CardDescription>
+        <CardAction className="flex items-center gap-1">
+          <Button variant="outline" size="sm" onClick={() => onMonth(currentMonth())} disabled={month === currentMonth()}>
+            Hoje
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => onMonth(shiftMonth(month, -1))} aria-label="Mês anterior">
+            <ChevronLeftIcon />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => onMonth(shiftMonth(month, 1))} aria-label="Próximo mês">
+            <ChevronRightIcon />
+          </Button>
+        </CardAction>
       </CardHeader>
-      <CardFooter className="flex-col items-start gap-1.5 text-sm">
-        {loading ? (
-          <Skeleton className="h-4 w-32" />
-        ) : (
-          <>
-            <div className="line-clamp-1 font-medium">{headline}</div>
-            <div className="line-clamp-1 text-muted-foreground">{detail}</div>
-          </>
-        )}
-      </CardFooter>
+      <CardContent className="grid grid-cols-1 gap-6 @4xl/main:grid-cols-[minmax(0,1fr)_18rem]">
+        <div>
+          <div className="grid grid-cols-7 pb-1 text-center text-xs text-muted-foreground">
+            {WEEKDAY_LABELS.map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 overflow-hidden rounded-md border bg-border gap-px">
+            {grid.map((day) => {
+              const inMonth = day.slice(0, 7) === month
+              const list = loading ? [] : itemsOn(items, day)
+              const isSelected = day === selected
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => onSelect(day)}
+                  aria-pressed={isSelected}
+                  aria-label={`${formatDate(day, { day: 'numeric', month: 'long' })}${list.length ? `, ${list.length} ${list.length === 1 ? 'item' : 'itens'}` : ''}`}
+                  className={`flex min-h-14 min-w-0 flex-col items-stretch gap-0.5 p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset @4xl/main:min-h-24 ${
+                    isSelected ? 'bg-muted' : 'bg-card hover:bg-muted/60'
+                  } ${inMonth ? '' : 'text-muted-foreground/60'}`}
+                >
+                  <span
+                    className={`flex size-6 items-center justify-center self-center rounded-full text-xs tabular-nums @4xl/main:self-start ${
+                      day === now ? 'bg-primary font-semibold text-primary-foreground' : ''
+                    }`}
+                  >
+                    {Number(day.slice(8, 10))}
+                  </span>
+                  {/* Phones: a dot per item (up to four). */}
+                  {list.length > 0 && (
+                    <span className="flex justify-center gap-0.5 @4xl/main:hidden">
+                      {list.slice(0, 4).map((item) => (
+                        <span
+                          key={item.id}
+                          className={`size-1.5 rounded-full ${item.late ? 'bg-destructive' : item.done || item.until < now ? 'bg-muted-foreground/40' : 'bg-foreground'}`}
+                        />
+                      ))}
+                    </span>
+                  )}
+                  {/* Wide screens: the first few titles. */}
+                  <span className="hidden min-w-0 flex-col gap-0.5 @4xl/main:flex">
+                    {list.slice(0, CELL_ITEMS).map((item) => (
+                      <span key={item.id} className={`flex min-w-0 items-center gap-1 text-[11px] leading-4 ${itemTone(item)}`}>
+                        <item.icon className="size-3 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{item.title}</span>
+                      </span>
+                    ))}
+                    {list.length > CELL_ITEMS && (
+                      <span className="text-[11px] leading-4 text-muted-foreground">+{list.length - CELL_ITEMS}</span>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-medium first-letter:uppercase">
+              {formatDate(selected, { weekday: 'long', day: 'numeric', month: 'long' })}
+            </span>
+            <span className="text-xs text-muted-foreground">{relativeDay(selected)}</span>
+          </div>
+          {loading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : dayItems.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Nada neste dia.</p>
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {dayItems.map((item) => (
+                <li key={item.id}>
+                  <a href={item.href} className="group flex items-center gap-3 py-2">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
+                      {item.done ? <CheckIcon className="size-4 text-muted-foreground" /> : <item.icon className="size-4 text-muted-foreground" />}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className={`truncate text-sm font-medium ${itemTone(item)}`}>{item.title}</span>
+                      {item.until !== item.date && (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {formatDate(item.date, { day: 'numeric', month: 'short' })} a {formatDate(item.until, { day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
+                    </span>
+                    {item.meta && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{item.meta}</span>}
+                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CardContent>
     </Card>
   )
 }

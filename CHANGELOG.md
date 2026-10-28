@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Month calendar on Início, in place of the summary cards: reminders (every repetition, and multi-day periods), bills (paid, pending, overdue), subscription charges, document expiries, insurance ends, health follow-ups and investment maturities. Pick a day to list its items; titles show in the cells on wide screens and dots on phones. Only the occurrence a reminder is waiting on shows as late.
+- End date on reminders: repeating reminders stop repeating after it; a one-time reminder with one spans every day up to it, and is late only after its last day.
 - **Notes** module: Markdown notes in nested folders, edited in a Tiptap editor that reads and writes plain Markdown (headings, emphasis, links, lists, checklists, quotes, code, images). Each note is its own `notes/<id>.md` file on Drive; the tree and titles live in `notes.json`. Autosave while typing, a conflict prompt when the note changed on another device, pasted Markdown formatted on paste, pasted or dropped images uploaded as attachments, `.md` import into any folder, and notes in the global search.
 - Offline reading of notes: the tree and every note are copied to IndexedDB in the background (images once opened). Offline, the app opens even with an expired session and shows notes read-only. The copy is tied to the account and erased on sign-out.
 - Backups (on Drive and the downloaded `.json`) include every note, and restoring brings them back.

@@ -35,6 +35,11 @@ export interface Reminder extends Syncable {
   weekdays: number[]
   /** First occurrence, YYYY-MM-DD. Later ones repeat from it (day 31 clamps to shorter months). */
   startDate: string
+  /**
+   * YYYY-MM-DD, empty for none (also missing on reminders saved before it existed).
+   * Repeating: the last day it can fall on. One-time: the last day of a period (a trip, a stay).
+   */
+  endDate?: string
   /** Shown in "Precisa de atenção" from this many days before */
   leadDays: number
   /** YYYY-MM-DD when it was ended, empty while active */
@@ -57,15 +62,30 @@ export type RemindersData = {
   occurrences: ReminderOccurrence[]
 }
 
-type Schedule = Pick<Reminder, 'frequency' | 'interval' | 'weekdays' | 'startDate'>
+type Schedule = Pick<Reminder, 'frequency' | 'interval' | 'weekdays' | 'startDate' | 'endDate'>
+
+/** The last day of a one-time reminder's period: its end date when it spans several days, else its date. */
+export function periodEnd(reminder: Pick<Reminder, 'frequency' | 'startDate' | 'endDate'>, date: string): string {
+  return reminder.frequency === 'once' && reminder.endDate && reminder.endDate > date ? reminder.endDate : date
+}
 
 /** Weekly reminders without days picked fall on the start date's weekday. */
 function sortedDays(reminder: Schedule): number[] {
   return reminder.weekdays.length ? [...reminder.weekdays].sort((a, b) => a - b) : [parseDate(reminder.startDate).getDay()]
 }
 
-/** Every scheduled date from the start, in order. Endless for repeating reminders: stop iterating yourself. */
+/**
+ * Every scheduled date from the start, in order, up to the end date if there is one.
+ * Endless for repeating reminders without an end: stop iterating yourself.
+ */
 export function* occurrences(reminder: Schedule): Generator<string> {
+  for (const date of unbounded(reminder)) {
+    if (reminder.frequency !== 'once' && reminder.endDate && date > reminder.endDate) return
+    yield date
+  }
+}
+
+function* unbounded(reminder: Schedule): Generator<string> {
   const { startDate } = reminder
   const step = Math.max(1, reminder.interval)
   switch (reminder.frequency) {
@@ -101,10 +121,20 @@ export function around(reminder: Schedule, date: string): { last?: string; next?
   return { last }
 }
 
-/** "Todo dia", "A cada 2 semanas · seg, qua", "Todo mês · dia 6", "Todo ano · 10 de março", "Uma vez · 10/03/2027" */
+/** "Todo dia", "A cada 2 semanas · seg, qua · até 30/06/2027", "Todo mês · dia 6", "Uma vez · 10/03/2027", "De 10/03/2027 a 15/03/2027" */
 export function scheduleLabel(reminder: Schedule): string {
   const start = parseDate(reminder.startDate)
-  if (reminder.frequency === 'once') return `Uma vez · ${start.toLocaleDateString('pt-BR')}`
+  if (reminder.frequency === 'once') {
+    return reminder.endDate && reminder.endDate > reminder.startDate
+      ? `De ${start.toLocaleDateString('pt-BR')} a ${parseDate(reminder.endDate).toLocaleDateString('pt-BR')}`
+      : `Uma vez · ${start.toLocaleDateString('pt-BR')}`
+  }
+  const until = reminder.endDate ? ` · até ${parseDate(reminder.endDate).toLocaleDateString('pt-BR')}` : ''
+  return `${repeatLabel(reminder, start)}${until}`
+}
+
+function repeatLabel(reminder: Schedule, start: Date): string {
+  if (reminder.frequency === 'once') return ''
   const step = Math.max(1, reminder.interval)
   const every =
     step > 1
