@@ -6,6 +6,7 @@ import Image from '@tiptap/extension-image'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { TableKit } from '@tiptap/extension-table'
 import { Placeholder } from '@tiptap/extensions'
+import { BookOpenIcon, PencilIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAttachments } from '@/storage/useAttachments'
 import { ATTACHMENT_PREFIX, NoteImage } from './NoteImage'
@@ -80,6 +82,25 @@ export function NoteEditor(props: NoteEditorProps) {
   return <EditorBody key={note.id} {...props} initial={content.value} />
 }
 
+const READING_KEY = 'vault.notes.reading'
+
+/** Reading mode is a per-device preference: it stays on across notes until switched back. */
+function loadReading(): boolean {
+  try {
+    return localStorage.getItem(READING_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function saveReading(reading: boolean) {
+  try {
+    localStorage.setItem(READING_KEY, reading ? '1' : '0')
+  } catch {
+    // Only a convenience: the next note opens in editing mode.
+  }
+}
+
 type Status = 'saved' | 'pending' | 'saving' | 'error'
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -92,6 +113,9 @@ const STATUS_LABEL: Record<Status, string> = {
 function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initial }: NoteEditorProps & { initial: NoteContent }) {
   const [title, setTitle] = useState(note.title)
   const [status, setStatus] = useState<Status>('saved')
+  // Offline (readOnly) nothing can be edited; reading is the user's own choice to just view.
+  const [reading, setReading] = useState(loadReading)
+  const locked = readOnly || reading
   const [conflict, setConflict] = useState(false)
   const { upload } = useAttachments('notes')
 
@@ -174,7 +198,7 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
     ],
     content: initial.markdown,
     contentType: 'markdown',
-    editable: !readOnly,
+    editable: !locked,
     onUpdate: ({ editor }) => scheduleRef.current(editor),
     editorProps: {
       attributes: { class: 'note-content min-h-[50svh] outline-none' },
@@ -207,8 +231,8 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
   }, [editor])
 
   useEffect(() => {
-    editor.setEditable(!readOnly)
-  }, [editor, readOnly])
+    editor.setEditable(!locked)
+  }, [editor, locked])
 
   // Back online with unsaved text (the connection dropped mid-save): try again.
   useEffect(() => {
@@ -275,14 +299,32 @@ function EditorBody({ note, readOnly, loadContent, saveContent, onRename, initia
             }
           }}
           placeholder={UNTITLED}
-          disabled={readOnly}
+          disabled={locked}
           aria-label="Título"
           className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60 disabled:opacity-100"
         />
-        {!readOnly && (
+        {!locked && (
           <span className={`shrink-0 pt-2 text-xs ${status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
             {STATUS_LABEL[status]}
           </span>
+        )}
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-0.5 shrink-0 text-muted-foreground"
+            onClick={() => {
+              // Switching to reading saves right away whatever is still waiting.
+              if (!reading) void flush()
+              setReading(!reading)
+              saveReading(!reading)
+            }}
+            aria-pressed={reading}
+            title={reading ? 'Voltar a editar' : 'Só visualizar, sem editar'}
+          >
+            {reading ? <PencilIcon /> : <BookOpenIcon />}
+            {reading ? 'Editar' : 'Ler'}
+          </Button>
         )}
       </div>
 
