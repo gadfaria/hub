@@ -32,6 +32,8 @@ export interface HomeEvent {
   onComplete?: () => void
   /** Reminders only: the color picked for the calendar */
   color?: string
+  /** Reminders only: opens its details instead of following `href` */
+  reminderId?: string
 }
 
 /** Agenda horizon and how close something must be to need attention. */
@@ -89,6 +91,7 @@ export function collectEvents(sources: EventSources): HomeEvent[] {
       attention,
       onComplete: () => sources.completeReminder(row),
       color: row.reminder.color,
+      reminderId: row.reminder.id,
     })
   }
 

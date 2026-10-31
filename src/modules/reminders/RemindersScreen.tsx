@@ -3,16 +3,6 @@ import { CheckIcon, EllipsisVerticalIcon, PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,37 +15,16 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { addDays, daysUntil, formatDate, today } from '@/lib/format'
-import { ReminderFormDialog } from './ReminderFormDialog'
-import { reminderColor, scheduleLabel, type Reminder } from './types'
+import { addDays, formatDate, today } from '@/lib/format'
+import { StatusBadge } from './ReminderDetailsDialog'
+import { reminderColor, scheduleLabel, whenLabel, type Reminder } from './types'
+import { useReminderDialogs } from './useReminderDialogs'
 import { useReminders, type FinishedRow, type ReminderRow } from './useReminders'
-
-type Confirm = { kind: 'end' | 'delete'; reminder: Reminder }
-
-function whenLabel(row: ReminderRow): string {
-  const days = daysUntil(row.due)
-  if (days === 0) return 'Hoje'
-  if (days === 1) return 'Amanhã'
-  if (days === -1) return 'Ontem'
-  return days < 0 ? `Há ${-days} dias` : `Em ${days} dias`
-}
-
-function StatusBadge({ row }: { row: ReminderRow }) {
-  if (row.status === 'overdue') return <Badge variant="destructive">{whenLabel(row)}</Badge>
-  if (row.status === 'today') return <Badge>Hoje</Badge>
-  return <Badge variant="secondary">{whenLabel(row)}</Badge>
-}
 
 export function RemindersScreen() {
   const reminders = useReminders()
+  const dialogs = useReminderDialogs(reminders)
   const [view, setView] = useState<'active' | 'finished'>('active')
-  const [dialog, setDialog] = useState<{ reminder?: Reminder } | null>(null)
-  const [confirm, setConfirm] = useState<Confirm | null>(null)
-
-  async function complete(row: ReminderRow) {
-    const done = await reminders.complete(row)
-    if (done) toast.success(`${row.reminder.title}: feito`, { action: { label: 'Desfazer', onClick: () => reminders.undoOccurrence(done) } })
-  }
 
   async function snooze(row: ReminderRow, days: number) {
     // From today when it is already due, otherwise from its own date.
@@ -67,7 +36,7 @@ export function RemindersScreen() {
   return (
     <>
       <SiteHeader title="Lembretes">
-        <Button size="sm" onClick={() => setDialog({})} disabled={reminders.loading}>
+        <Button size="sm" onClick={() => dialogs.edit()} disabled={reminders.loading}>
           <PlusIcon />
           <span className="hidden sm:inline">Novo lembrete</span>
           <span className="sm:hidden">Novo</span>
@@ -98,56 +67,27 @@ export function RemindersScreen() {
               loading={reminders.loading}
               rows={reminders.active}
               hasReminders={reminders.all.length > 0}
-              onComplete={complete}
+              onOpen={(reminder) => dialogs.showDetails({ reminderId: reminder.id })}
+              onComplete={dialogs.complete}
               onSnooze={snooze}
-              onEdit={(reminder) => setDialog({ reminder })}
-              onEnd={(reminder) => setConfirm({ kind: 'end', reminder })}
+              onEdit={dialogs.edit}
+              onEnd={dialogs.askToEnd}
             />
           ) : (
             <FinishedTable
               loading={reminders.loading}
               rows={reminders.finished}
-              onEdit={(reminder) => setDialog({ reminder })}
+              onOpen={(reminder) => dialogs.showDetails({ reminderId: reminder.id })}
+              onEdit={dialogs.edit}
               onReactivate={reminders.reactivateReminder}
               onUndo={reminders.undoOccurrence}
-              onDelete={(reminder) => setConfirm({ kind: 'delete', reminder })}
+              onDelete={dialogs.askToDelete}
             />
           )}
         </div>
       </PageBody>
 
-      <ReminderFormDialog
-        open={dialog !== null && confirm === null}
-        onOpenChange={(open) => !open && setDialog(null)}
-        reminder={dialog?.reminder}
-        onSubmit={(input) => reminders.saveReminder(input, dialog?.reminder)}
-        onDelete={(reminder) => setConfirm({ kind: 'delete', reminder })}
-      />
-      <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirm?.kind === 'end' ? `Encerrar ${confirm.reminder.title}?` : 'Excluir lembrete?'}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirm?.kind === 'end'
-                ? 'Ele para de repetir e vai para "Concluídos", de onde pode ser reativado.'
-                : `${confirm?.reminder.title ?? ''} será removido de vez.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction
-              variant={confirm?.kind === 'delete' ? 'destructive' : 'default'}
-              onClick={async () => {
-                if (confirm?.kind === 'end') await reminders.endReminder(confirm.reminder)
-                if (confirm?.kind === 'delete' && (await reminders.deleteReminder(confirm.reminder))) setDialog(null)
-                setConfirm(null)
-              }}
-            >
-              {confirm?.kind === 'end' ? 'Encerrar' : 'Excluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {dialogs.dialogs}
     </>
   )
 }
@@ -166,6 +106,7 @@ function ActiveTable({
   loading,
   rows,
   hasReminders,
+  onOpen,
   onComplete,
   onSnooze,
   onEdit,
@@ -174,6 +115,7 @@ function ActiveTable({
   loading: boolean
   rows: ReminderRow[]
   hasReminders: boolean
+  onOpen: (reminder: Reminder) => void
   onComplete: (row: ReminderRow) => void
   onSnooze: (row: ReminderRow, days: number) => void
   onEdit: (reminder: Reminder) => void
@@ -201,13 +143,13 @@ function ActiveTable({
             </TableRow>
           ) : (
             rows.map((row) => (
-              <TableRow key={row.reminder.id} className="cursor-pointer" onClick={() => onEdit(row.reminder)}>
+              <TableRow key={row.reminder.id} className="cursor-pointer" onClick={() => onOpen(row.reminder)}>
                 <TableCell className="pl-4">
                   <div className="flex flex-col">
                     <span className={`tabular-nums ${row.status === 'overdue' ? 'font-medium text-destructive' : ''}`}>
                       {formatDate(row.due, { day: '2-digit', month: '2-digit' })}
                     </span>
-                    <span className="text-xs text-muted-foreground sm:hidden">{whenLabel(row)}</span>
+                    <span className="text-xs text-muted-foreground sm:hidden">{whenLabel(row.due)}</span>
                   </div>
                 </TableCell>
                 <TableCell className="max-w-64">
@@ -259,6 +201,7 @@ function ActiveTable({
 function FinishedTable({
   loading,
   rows,
+  onOpen,
   onEdit,
   onReactivate,
   onUndo,
@@ -266,6 +209,7 @@ function FinishedTable({
 }: {
   loading: boolean
   rows: FinishedRow[]
+  onOpen: (reminder: Reminder) => void
   onEdit: (reminder: Reminder) => void
   onReactivate: (reminder: Reminder) => void
   onUndo: (occurrence: NonNullable<FinishedRow['occurrence']>) => void
@@ -293,7 +237,7 @@ function FinishedTable({
             </TableRow>
           ) : (
             rows.map(({ reminder, finishedOn, occurrence }) => (
-              <TableRow key={reminder.id} className="cursor-pointer" onClick={() => onEdit(reminder)}>
+              <TableRow key={reminder.id} className="cursor-pointer" onClick={() => onOpen(reminder)}>
                 <TableCell className="pl-4 tabular-nums text-muted-foreground">{formatDate(finishedOn)}</TableCell>
                 <TableCell className="max-w-64">
                   <div className="flex flex-col">

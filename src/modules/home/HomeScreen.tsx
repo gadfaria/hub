@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { CheckCircle2Icon, CheckIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import { toast } from 'sonner'
 import { useAuth } from '@/auth/context'
 import { PageBody } from '@/components/app-layout'
 import { SiteHeader } from '@/components/site-header'
@@ -12,7 +11,8 @@ import { useBills } from '@/modules/bills/useBills'
 import { useDocuments } from '@/modules/documents/useDocuments'
 import { useFinance } from '@/modules/finance/useFinance'
 import { useHealth } from '@/modules/health/useHealth'
-import { useReminders, type ReminderRow } from '@/modules/reminders/useReminders'
+import { useReminderDialogs } from '@/modules/reminders/useReminderDialogs'
+import { useReminders } from '@/modules/reminders/useReminders'
 import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions'
 import { useVehicles } from '@/modules/vehicles/useVehicles'
 import { reminderColor } from '@/modules/reminders/types'
@@ -46,10 +46,7 @@ export function HomeScreen() {
   const loading =
     finance.loading || bills.loading || subs.loading || docs.loading || health.loading || vehicles.loading || reminders.loading
 
-  async function completeReminder(row: ReminderRow) {
-    const done = await reminders.complete(row)
-    if (done) toast.success(`${row.reminder.title}: feito`, { action: { label: 'Desfazer', onClick: () => reminders.undoOccurrence(done) } })
-  }
+  const reminderDialogs = useReminderDialogs(reminders)
 
   const month = currentMonth()
   const billRows = bills.monthRows(month)
@@ -66,7 +63,7 @@ export function HomeScreen() {
         balancesUpdatedAt: finance.lastUpdate,
         investments: finance.activeInvestments,
         reminders: reminders.active,
-        completeReminder,
+        completeReminder: reminderDialogs.complete,
       })
 
   const attention = events.filter((e) => e.attention).sort(byUrgency)
@@ -127,10 +124,12 @@ export function HomeScreen() {
             onMonth={showMonth}
             attention={attention}
             agenda={agenda}
+            onOpenReminder={(reminderId, date, done) => reminderDialogs.showDetails({ reminderId, date, done })}
           />
         </div>
 
       </PageBody>
+      {reminderDialogs.dialogs}
     </>
   )
 }
@@ -141,11 +140,20 @@ const DOT: Record<Severity, string> = {
   info: 'bg-muted-foreground/40',
 }
 
-function EventRow({ event, trailing }: { event: HomeEvent; trailing?: string }) {
+/** Follows `href`, except reminders: those open their details right here. */
+function openLink(item: { reminderId?: string; date: string; done?: boolean }, onOpen: OpenReminder) {
+  return (e: React.MouseEvent) => {
+    if (!item.reminderId) return
+    e.preventDefault()
+    onOpen(item.reminderId, item.date, item.done)
+  }
+}
+
+function EventRow({ event, trailing, onOpen }: { event: HomeEvent; trailing?: string; onOpen: OpenReminder }) {
   const Icon = event.icon
   return (
     <li className="flex items-center gap-1 py-2.5 first:pt-0">
-      <a href={event.href} className="group flex min-w-0 flex-1 items-center gap-3">
+      <a href={event.href} onClick={openLink(event, onOpen)} className="group flex min-w-0 flex-1 items-center gap-3">
         <span className="relative flex size-8 shrink-0 items-center justify-center rounded-md border">
           <Icon className="size-4 text-muted-foreground" />
           <span className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${DOT[event.severity]}`} />
@@ -169,7 +177,7 @@ function EventRow({ event, trailing }: { event: HomeEvent; trailing?: string }) 
   )
 }
 
-function Agenda({ events }: { events: HomeEvent[] }) {
+function Agenda({ events, onOpen }: { events: HomeEvent[]; onOpen: OpenReminder }) {
   const days = new Map<string, HomeEvent[]>()
   for (const event of events) days.set(event.date, [...(days.get(event.date) ?? []), event])
 
@@ -188,7 +196,7 @@ function Agenda({ events }: { events: HomeEvent[] }) {
             <ul className="flex flex-col">
               {list.map((event) => (
                 <li key={event.id}>
-                  <a href={event.href} className="flex items-baseline gap-2 py-0.5 text-sm hover:underline">
+                  <a href={event.href} onClick={openLink(event, onOpen)} className="flex items-baseline gap-2 py-0.5 text-sm hover:underline">
                     <span
                       className={`size-1.5 shrink-0 translate-y-[-1px] rounded-full ${
                         event.severity === 'info' ? (reminderColor(event.color)?.dot ?? DOT.info) : DOT[event.severity]
@@ -206,6 +214,8 @@ function Agenda({ events }: { events: HomeEvent[] }) {
     </div>
   )
 }
+
+type OpenReminder = (reminderId: string, date: string, done?: boolean) => void
 
 const WEEKDAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 const NO_SPANS = { spans: [], lanes: 0 }
@@ -234,6 +244,7 @@ function DayCell({
   all,
   lanes,
   onSelect,
+  onOpen,
 }: {
   day: string
   inMonth: boolean
@@ -243,6 +254,7 @@ function DayCell({
   /** Period bars drawn over this week, which the cell leaves room for */
   lanes: number
   onSelect: (day: string) => void
+  onOpen: OpenReminder
 }) {
   // Periods are drawn as bars over the week; the cell lists only the single-day items.
   const singles = all.filter((item) => item.until === item.date)
@@ -278,7 +290,20 @@ function DayCell({
       {/* Wide screens: the first few titles. */}
       <span className="hidden min-w-0 flex-col gap-0.5 @4xl/main:flex">
         {singles.slice(0, room).map((item) => (
-          <span key={item.id} className={`flex min-w-0 items-center gap-1 text-[11px] leading-4 ${itemTone(item)}`}>
+          <span
+            key={item.id}
+            // Inside the day's button, so a span; the day's list below offers the same reminder by keyboard.
+            onClick={
+              item.reminderId
+                ? (e) => {
+                    e.stopPropagation()
+                    onSelect(day)
+                    onOpen(item.reminderId!, item.date, item.done)
+                  }
+                : undefined
+            }
+            className={`flex min-w-0 items-center gap-1 text-[11px] leading-4 ${itemTone(item)} ${item.reminderId ? 'rounded-sm hover:bg-foreground/10' : ''}`}
+          >
             <item.icon className={`size-3 shrink-0 ${reminderColor(item.color)?.text ?? 'text-muted-foreground'}`} />
             <span className="truncate">{item.title}</span>
           </span>
@@ -290,7 +315,7 @@ function DayCell({
 }
 
 /** A period across part of a week: a thin line on phones, a labeled bar on wide screens. */
-function SpanBar({ span }: { span: WeekSpan }) {
+function SpanBar({ span, onOpen }: { span: WeekSpan; onOpen: OpenReminder }) {
   const { item } = span
   const color = reminderColor(item.color)
   const past = !item.late && (item.done || item.until < today())
@@ -299,7 +324,8 @@ function SpanBar({ span }: { span: WeekSpan }) {
     <span style={{ gridColumn: `${span.start + 1} / ${span.end + 2}`, gridRow: span.lane + 1 }} className={`min-w-0 ${past ? 'opacity-50' : ''}`}>
       <span className={`block h-1 @4xl/main:hidden ${ends} ${item.late ? 'bg-destructive' : color?.line ?? 'bg-foreground/60'}`} />
       <span
-        className={`hidden h-4 truncate px-1 text-[11px] leading-4 font-medium @4xl/main:block ${ends} ${color?.bar ?? 'bg-muted text-foreground'} ${
+        onClick={item.reminderId ? () => onOpen(item.reminderId!, item.date, item.done) : undefined}
+        className={`pointer-events-auto hidden h-4 cursor-pointer truncate px-1 text-[11px] leading-4 font-medium @4xl/main:block ${ends} ${color?.bar ?? 'bg-muted text-foreground'} ${
           item.late ? 'text-destructive ring-1 ring-destructive ring-inset' : ''
         } ${item.done ? 'line-through' : ''}`}
       >
@@ -320,6 +346,7 @@ function CalendarCard({
   onMonth,
   attention,
   agenda,
+  onOpenReminder,
 }: {
   loading: boolean
   month: string
@@ -330,6 +357,7 @@ function CalendarCard({
   onMonth: (month: string) => void
   attention: HomeEvent[]
   agenda: HomeEvent[]
+  onOpenReminder: OpenReminder
 }) {
   const dayItems = itemsOn(items, selected)
   const weeks = Array.from({ length: grid.length / 7 }, (_, i) => grid.slice(i * 7, i * 7 + 7))
@@ -376,13 +404,14 @@ function CalendarCard({
                       all={loading ? [] : itemsOn(items, day)}
                       lanes={lanes}
                       onSelect={onSelect}
+                      onOpen={onOpenReminder}
                     />
                   ))}
-                  {/* Periods: one bar across the days they cover, stacked when they overlap. Clicks go to the day below. */}
+                  {/* Periods: one bar across the days they cover, stacked when they overlap. Their label opens the reminder (phones: the day's list). */}
                   {spans.length > 0 && (
                     <div aria-hidden className="pointer-events-none absolute inset-x-0 top-[1.875rem] grid grid-cols-7 gap-x-px gap-y-0.5">
                       {spans.map((span) => (
-                        <SpanBar key={`${span.item.id}-${week[0]}`} span={span} />
+                        <SpanBar key={`${span.item.id}-${week[0]}`} span={span} onOpen={onOpenReminder} />
                       ))}
                     </div>
                   )}
@@ -407,7 +436,7 @@ function CalendarCard({
               ) : (
                 <ul className="flex flex-col divide-y">
                   {attention.map((event) => (
-                    <EventRow key={event.id} event={event} trailing={relativeDay(event.date)} />
+                    <EventRow key={event.id} event={event} trailing={relativeDay(event.date)} onOpen={onOpenReminder} />
                   ))}
                 </ul>
               )}
@@ -428,7 +457,7 @@ function CalendarCard({
                 <ul className="flex flex-col divide-y">
                   {dayItems.map((item) => (
                     <li key={item.id}>
-                      <a href={item.href} className="group flex items-center gap-3 py-2">
+                      <a href={item.href} onClick={openLink(item, onOpenReminder)} className="group flex items-center gap-3 py-2">
                         <span className="flex size-8 shrink-0 items-center justify-center rounded-md border">
                           {item.done ? (
                             <CheckIcon className="size-4 text-muted-foreground" />
@@ -460,7 +489,7 @@ function CalendarCard({
               ) : agenda.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nada agendado.</p>
               ) : (
-                <Agenda events={agenda} />
+                <Agenda events={agenda} onOpen={onOpenReminder} />
               )}
             </section>
           </div>

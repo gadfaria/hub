@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Reminder details dialog: clicking a reminder in Lembretes, or on the home calendar and lists, shows its schedule, date, status, heads-up and notes, with Concluir and Editar. Editing stays one click away instead of being the first thing that opens.
 - Reminder colors: pick one of eight colors (or none) in the reminder form. The calendar shows the reminder in that color, as does the dot next to its title in the list and in the agenda.
 - Periods on the calendar: a reminder with a start and an end is drawn as one bar across the days it covers, named at its start and again at the start of each week it continues into; overlapping periods stack. Phones show a thin colored line. Busy weeks grow taller instead of clipping.
 - Reading mode for notes: a "Ler" / "Editar" button next to the title locks the note for viewing only (links open, checklists don't toggle). The choice is remembered on the device.

@@ -31,6 +31,8 @@ export interface CalendarItem {
   late: boolean
   /** Reminders only: the color picked for the calendar */
   color?: string
+  /** Reminders only: opens its details instead of following `href` */
+  reminderId?: string
 }
 
 /** The six weeks shown for a month, Sunday first, as YYYY-MM-DD. */
@@ -70,6 +72,7 @@ export function collectCalendar(from: string, to: string, sources: CalendarSourc
       done,
       late,
       color: reminder.color,
+      reminderId: reminder.id,
     })
   }
 

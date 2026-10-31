@@ -1,5 +1,5 @@
 import type { Syncable } from '@/domain/types'
-import { addDays, addMonths, parseDate } from '@/lib/format'
+import { addDays, addMonths, daysUntil, parseDate } from '@/lib/format'
 
 /** How often a reminder repeats, with the unit `interval` counts in. */
 export const FREQUENCIES = {
@@ -178,3 +178,12 @@ function repeatLabel(reminder: Schedule, start: Date): string {
 }
 
 export type ReminderStatus = 'overdue' | 'today' | 'upcoming'
+
+/** "Hoje", "Amanhã", "Ontem", "Há 3 dias", "Em 5 dias" */
+export function whenLabel(date: string): string {
+  const days = daysUntil(date)
+  if (days === 0) return 'Hoje'
+  if (days === 1) return 'Amanhã'
+  if (days === -1) return 'Ontem'
+  return days < 0 ? `Há ${-days} dias` : `Em ${days} dias`
+}
