@@ -1,5 +1,5 @@
 import type { Attachment, Syncable } from '@/domain/types'
-import { dayOfMonth, parseDate } from '@/lib/format'
+import { dayOfMonth, parseDate, shiftMonth } from '@/lib/format'
 
 export const BILL_CATEGORIES = {
   rent: 'Aluguel',
@@ -95,9 +95,25 @@ export interface BillPayment extends Syncable {
   attachments: Attachment[]
 }
 
+/** A purchase charged to a card, in one statement or split over several. */
+export interface CardPurchase extends Syncable {
+  /** The card (a creditCard bill id) */
+  cardId: string
+  description: string
+  /** Total in cents */
+  amount: number
+  /** YYYY-MM-DD */
+  date: string
+  /** 1 when paid in full */
+  installments: number
+  /** Statement of the first installment, YYYY-MM (the month that statement is due) */
+  firstMonth: string
+}
+
 export type BillsData = {
   bills: Bill[]
   payments: BillPayment[]
+  purchases: CardPurchase[]
 }
 
 export function billFrequency(bill: Pick<Bill, 'frequency'>): BillFrequency {
@@ -116,6 +132,31 @@ function monthsBetween(from: string, to: string): number {
   const [fy, fm] = from.split('-').map(Number)
   const [ty, tm] = to.split('-').map(Number)
   return (ty - fy) * 12 + (tm - fm)
+}
+
+/**
+ * The statement a purchase falls in, as the month it is due: a purchase on the closing day or later
+ * goes to the next one, and a card due on or before its closing day is paid the month after closing.
+ * Cards with no closing day count from the due day.
+ */
+export function firstStatementMonth(card: Pick<Bill, 'dueDay' | 'card'>, date: string): string {
+  const month = date.slice(0, 7)
+  const day = Number(date.slice(8, 10))
+  const closing = card.card?.closingDay ?? 0
+  if (!closing) return day < card.dueDay ? month : shiftMonth(month, 1)
+  const closes = day < closing ? month : shiftMonth(month, 1)
+  return card.dueDay > closing ? closes : shiftMonth(closes, 1)
+}
+
+/** The purchase's installment in a statement, numbered from 1, or null if it has none there. The first one takes the leftover cents. */
+export function installmentIn(
+  purchase: Pick<CardPurchase, 'amount' | 'installments' | 'firstMonth'>,
+  month: string,
+): { number: number; amount: number } | null {
+  const index = monthsBetween(purchase.firstMonth, month)
+  if (index < 0 || index >= purchase.installments) return null
+  const base = Math.floor(purchase.amount / purchase.installments)
+  return { number: index + 1, amount: index === 0 ? purchase.amount - base * (purchase.installments - 1) : base }
 }
 
 /** "vence dia 10"; "trimestral · dia 10 (jan, abr, jul, out)"; "anual · 10 de março"; "avulsa · 10/03/2027" */

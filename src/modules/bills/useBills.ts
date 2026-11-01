@@ -4,22 +4,34 @@ import type { Attachment, Syncable } from '@/domain/types'
 import { dayOfMonth, shiftMonth, today } from '@/lib/format'
 import { useAttachments } from '@/storage/useAttachments'
 import { useCollection } from '@/storage/useCollection'
-import { billFrequency, FREQUENCIES, isDueIn, type Bill, type BillPayment, type BillsData, type BillStatus } from './types'
+import { billFrequency, FREQUENCIES, installmentIn, isDueIn, type Bill, type BillPayment, type BillsData, type BillStatus, type CardPurchase } from './types'
 
-const EMPTY: BillsData = { bills: [], payments: [] }
+const EMPTY: BillsData = { bills: [], payments: [], purchases: [] }
 
 export type BillInput = Omit<Bill, keyof Syncable>
 export type PaymentInput = Pick<BillPayment, 'amount' | 'dueDate' | 'paidAt' | 'notes'>
+export type PurchaseInput = Omit<CardPurchase, keyof Syncable>
+
+/** A card purchase as it stands in one statement. */
+export interface PurchaseRow {
+  purchase: CardPurchase
+  /** Which installment this is, from 1 */
+  number: number
+  /** This statement's share, in cents */
+  amount: number
+}
 
 /** A bill as it stands in one month. */
 export interface MonthRow {
   bill: Bill
   payment: BillPayment | undefined
   dueDate: string
-  /** The real amount when entered, otherwise the estimate */
+  /** The real amount when entered, otherwise the estimate, or the card's purchases if they add up to more */
   amount: number
   estimated: boolean
   status: BillStatus
+  /** On cards, the purchases in this month's statement */
+  purchases: PurchaseRow[]
 }
 
 export interface HistoryPoint {
@@ -44,6 +56,7 @@ export function useBills() {
     () => ({
       bills: (data?.bills ?? []).filter((b) => !b.deleted).sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name)),
       payments: (data?.payments ?? []).filter((p) => !p.deleted),
+      purchases: (data?.purchases ?? []).filter((p) => !p.deleted).sort((a, b) => b.date.localeCompare(a.date)),
     }),
     [data],
   )
@@ -53,6 +66,17 @@ export function useBills() {
       live.payments
         .filter((p) => p.billId === billId && p.month === month)
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0],
+    [live],
+  )
+
+  const purchasesIn = useCallback(
+    (cardId: string, month: string): PurchaseRow[] =>
+      live.purchases
+        .filter((p) => p.cardId === cardId)
+        .flatMap((purchase) => {
+          const installment = installmentIn(purchase, month)
+          return installment ? [{ purchase, ...installment }] : []
+        }),
     [live],
   )
 
@@ -66,18 +90,20 @@ export function useBills() {
           const payment = paymentFor(bill.id, month)
           const dueDate = payment?.dueDate || dayOfMonth(month, bill.dueDay)
           const status: BillStatus = payment?.paidAt ? 'paid' : dueDate < now ? 'overdue' : 'pending'
+          const purchases = purchasesIn(bill.id, month)
           return {
             bill,
             payment,
             dueDate,
-            amount: payment ? payment.amount : bill.estimate,
+            amount: payment ? payment.amount : Math.max(bill.estimate, purchases.reduce((sum, p) => sum + p.amount, 0)),
             estimated: !payment,
             status,
+            purchases,
           }
         })
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.bill.name.localeCompare(b.bill.name))
     },
-    [live, paymentFor],
+    [live, paymentFor, purchasesIn],
   )
 
   /**
@@ -113,6 +139,7 @@ export function useBills() {
       const ok = await save({
         bills: [touch(bill, { deleted: true })],
         payments: payments.map((p) => touch(p, { deleted: true })),
+        purchases: live.purchases.filter((p) => p.cardId === bill.id).map((p) => touch(p, { deleted: true })),
       })
       if (ok) await attachments.trash(payments.flatMap((p) => p.attachments))
       return ok
@@ -143,5 +170,16 @@ export function useBills() {
     [save],
   )
 
-  return { loading, bills: live.bills, monthRows, history, saveBill, endBill, deleteBill, savePayment, undoPayment }
+  const savePurchase = useCallback(
+    (input: PurchaseInput, existing?: CardPurchase) =>
+      save({ purchases: [existing ? touch(existing, input) : { ...newSyncable(), ...input }] }),
+    [save],
+  )
+
+  const deletePurchase = useCallback(
+    (purchase: CardPurchase) => save({ purchases: [touch(purchase, { deleted: true })] }),
+    [save],
+  )
+
+  return { loading, bills: live.bills, monthRows, history, saveBill, endBill, deleteBill, savePayment, undoPayment, savePurchase, deletePurchase }
 }

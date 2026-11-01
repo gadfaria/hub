@@ -12,7 +12,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate, formatMoney } from '@/lib/format'
 import type { SubscriptionRow } from '../subscriptions/useSubscriptions'
-import { BILL_STATUS_LABELS, cardLabel, PAYMENT_METHODS } from './types'
+import { BILL_STATUS_LABELS, cardLabel, PAYMENT_METHODS, type CardPurchase } from './types'
 import type { MonthRow } from './useBills'
 
 interface CardsViewProps {
@@ -27,6 +27,8 @@ interface CardsViewProps {
   onUndo: (row: MonthRow) => void
   onHistory: (row: MonthRow) => void
   onEdit: (row: MonthRow) => void
+  onAddPurchase: (row: MonthRow) => void
+  onEditPurchase: (row: MonthRow, purchase: CardPurchase) => void
 }
 
 export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: CardsViewProps) {
@@ -90,10 +92,13 @@ function CardTile({
   onUndo,
   onHistory,
   onEdit,
+  onAddPurchase,
+  onEditPurchase,
 }: Omit<CardsViewProps, 'loading' | 'rows' | 'subscriptions' | 'onAdd'> & { row: MonthRow; subscriptions: SubscriptionRow[] }) {
   const { bill, status } = row
   const details = bill.card
   const monthly = subscriptions.reduce((sum, s) => sum + s.monthly, 0)
+  const purchasesTotal = row.purchases.reduce((sum, p) => sum + p.amount, 0)
   const schedule = [details?.closingDay ? `fecha dia ${details.closingDay}` : '', `vence ${formatDate(row.dueDate, { day: '2-digit', month: '2-digit' })}`]
     .filter(Boolean)
     .join(' · ')
@@ -123,6 +128,7 @@ function CardTile({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onSelect={() => onAddPurchase(row)}>Adicionar compra</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onEnter(row)}>{row.estimated ? 'Lançar fatura' : 'Editar fatura'}</DropdownMenuItem>
               {status === 'paid' && <DropdownMenuItem onSelect={() => onUndo(row)}>Desfazer pagamento</DropdownMenuItem>}
               <DropdownMenuItem onSelect={() => onHistory(row)}>Ver histórico</DropdownMenuItem>
@@ -158,6 +164,37 @@ function CardTile({
             <span className="tabular-nums">{formatMoney(details.limit)}</span>
           </div>
         ) : null}
+
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="text-muted-foreground">Compras nesta fatura</span>
+            <span className="flex items-center gap-1">
+              <span className="tabular-nums">{row.purchases.length ? formatMoney(purchasesTotal) : '—'}</span>
+              <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={() => onAddPurchase(row)}>
+                <PlusIcon />
+                <span className="sr-only">Adicionar compra</span>
+              </Button>
+            </span>
+          </div>
+          {row.purchases.map(({ purchase, number, amount }) => (
+            <button
+              key={purchase.id}
+              type="button"
+              onClick={() => onEditPurchase(row, purchase)}
+              className="flex items-baseline justify-between gap-4 rounded-sm text-left text-xs hover:bg-muted"
+            >
+              <span className="min-w-0 truncate">
+                {purchase.description}
+                <span className="text-muted-foreground">
+                  {' · '}
+                  {formatDate(purchase.date, { day: '2-digit', month: '2-digit' })}
+                  {purchase.installments > 1 && ` · ${number}/${purchase.installments}`}
+                </span>
+              </span>
+              <span className="shrink-0 tabular-nums">{formatMoney(amount)}</span>
+            </button>
+          ))}
+        </div>
       </CardContent>
 
       <CardFooter className="flex-col items-stretch gap-2 border-t text-sm">

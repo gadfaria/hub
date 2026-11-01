@@ -30,7 +30,8 @@ import { BillHistoryDialog } from './BillHistoryDialog'
 import { CardFormDialog } from './CardFormDialog'
 import { CardsView } from './CardsView'
 import { PaymentDialog } from './PaymentDialog'
-import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus } from './types'
+import { PurchaseFormDialog } from './PurchaseFormDialog'
+import { BILL_CATEGORIES, BILL_STATUS_LABELS, billFrequency, cardLabel, FREQUENCIES, isCard, PAYMENT_METHODS, type Bill, type BillStatus, type CardPurchase } from './types'
 import { useBills, type MonthRow } from './useBills'
 import { useSubscriptions } from '../subscriptions/useSubscriptions'
 
@@ -61,6 +62,8 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const [paymentRow, setPaymentRow] = useState<{ row: MonthRow; markPaid: boolean } | null>(null)
   const [historyBill, setHistoryBill] = useState<Bill | null>(null)
   const [confirm, setConfirm] = useState<Confirm | null>(null)
+  const [purchaseDialog, setPurchaseDialog] = useState<{ card: Bill; purchase?: CardPurchase } | null>(null)
+  const [deletingPurchase, setDeletingPurchase] = useState<CardPurchase | null>(null)
 
   const rows = bills.monthRows(month)
   const isCurrent = month === currentMonth()
@@ -114,6 +117,8 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
             onUndo={(row) => row.payment && bills.undoPayment(row.payment)}
             onHistory={(row) => setHistoryBill(row.bill)}
             onEdit={(row) => editBill(row.bill)}
+            onAddPurchase={(row) => setPurchaseDialog({ card: row.bill })}
+            onEditPurchase={(row, purchase) => setPurchaseDialog({ card: row.bill, purchase })}
           />
         ) : (
           <>
@@ -148,6 +153,14 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
         card={cardDialog?.card}
         onSubmit={(input) => bills.saveBill(input, cardDialog?.card)}
         onDelete={(card) => setConfirm({ kind: 'delete', bill: card })}
+      />
+      <PurchaseFormDialog
+        open={purchaseDialog !== null && deletingPurchase === null}
+        onOpenChange={(open) => !open && setPurchaseDialog(null)}
+        card={purchaseDialog?.card}
+        purchase={purchaseDialog?.purchase}
+        onSubmit={(input) => bills.savePurchase(input, purchaseDialog?.purchase)}
+        onDelete={setDeletingPurchase}
       />
       <PaymentDialog
         row={paymentRow?.row ?? null}
@@ -190,6 +203,26 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
               }}
             >
               {confirm?.kind === 'end' ? 'Encerrar' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={deletingPurchase !== null} onOpenChange={(open) => !open && setDeletingPurchase(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir compra?</AlertDialogTitle>
+            <AlertDialogDescription>{deletingPurchase?.description} sai de todas as faturas em que aparece.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={async () => {
+                if (deletingPurchase && (await bills.deletePurchase(deletingPurchase))) setPurchaseDialog(null)
+                setDeletingPurchase(null)
+              }}
+            >
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
