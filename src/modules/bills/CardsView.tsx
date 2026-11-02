@@ -12,7 +12,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate, formatMoney } from '@/lib/format'
 import type { SubscriptionRow } from '../subscriptions/useSubscriptions'
-import { BILL_STATUS_LABELS, cardLabel, PAYMENT_METHODS, type CardPurchase } from './types'
+import { BILL_STATUS_LABELS, cardLabel, PAYMENT_METHODS } from './types'
 import type { MonthRow } from './useBills'
 
 interface CardsViewProps {
@@ -28,7 +28,8 @@ interface CardsViewProps {
   onHistory: (row: MonthRow) => void
   onEdit: (row: MonthRow) => void
   onAddPurchase: (row: MonthRow) => void
-  onEditPurchase: (row: MonthRow, purchase: CardPurchase) => void
+  /** Opens the card's expenses */
+  onSelect: (row: MonthRow) => void
 }
 
 export function CardsView({ loading, rows, subscriptions, onAdd, ...actions }: CardsViewProps) {
@@ -93,7 +94,7 @@ function CardTile({
   onHistory,
   onEdit,
   onAddPurchase,
-  onEditPurchase,
+  onSelect,
 }: Omit<CardsViewProps, 'loading' | 'rows' | 'subscriptions' | 'onAdd'> & { row: MonthRow; subscriptions: SubscriptionRow[] }) {
   const { bill, status } = row
   const details = bill.card
@@ -104,14 +105,14 @@ function CardTile({
     .join(' · ')
 
   return (
-    <Card className="@container/card">
+    <Card className="@container/card cursor-pointer transition-colors hover:bg-muted/50" onClick={() => onSelect(row)}>
       <CardHeader>
         <CardDescription className="flex items-center gap-1.5">
           <CreditCardIcon className="size-4" />
           {cardLabel(bill) || 'Cartão de crédito'}
         </CardDescription>
         <CardTitle className="text-lg">{bill.name}</CardTitle>
-        <CardAction className="flex items-center gap-1">
+        <CardAction className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {status === 'paid' ? (
             <Badge variant="outline" className="text-muted-foreground">
               <CheckIcon />
@@ -128,6 +129,7 @@ function CardTile({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onSelect={() => onSelect(row)}>Ver gastos</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onAddPurchase(row)}>Adicionar compra</DropdownMenuItem>
               <DropdownMenuItem onSelect={() => onEnter(row)}>{row.estimated ? 'Lançar fatura' : 'Editar fatura'}</DropdownMenuItem>
               {status === 'paid' && <DropdownMenuItem onSelect={() => onUndo(row)}>Desfazer pagamento</DropdownMenuItem>}
@@ -151,7 +153,14 @@ function CardTile({
             </span>
           </div>
           {status !== 'paid' && (
-            <Button variant="outline" size="sm" onClick={() => onPay(row)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPay(row)
+              }}
+            >
               <CheckIcon />
               Pagar
             </Button>
@@ -165,35 +174,25 @@ function CardTile({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-muted-foreground">Compras nesta fatura</span>
-            <span className="flex items-center gap-1">
-              <span className="tabular-nums">{row.purchases.length ? formatMoney(purchasesTotal) : '—'}</span>
-              <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={() => onAddPurchase(row)}>
-                <PlusIcon />
-                <span className="sr-only">Adicionar compra</span>
-              </Button>
-            </span>
-          </div>
-          {row.purchases.map(({ purchase, number, amount }) => (
-            <button
-              key={purchase.id}
-              type="button"
-              onClick={() => onEditPurchase(row, purchase)}
-              className="flex items-baseline justify-between gap-4 rounded-sm text-left text-xs hover:bg-muted"
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">
+            {row.purchases.length === 1 ? '1 compra nesta fatura' : `${row.purchases.length} compras nesta fatura`}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="tabular-nums">{row.purchases.length ? formatMoney(purchasesTotal) : '—'}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-muted-foreground"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAddPurchase(row)
+              }}
             >
-              <span className="min-w-0 truncate">
-                {purchase.description}
-                <span className="text-muted-foreground">
-                  {' · '}
-                  {formatDate(purchase.date, { day: '2-digit', month: '2-digit' })}
-                  {purchase.installments > 1 && ` · ${number}/${purchase.installments}`}
-                </span>
-              </span>
-              <span className="shrink-0 tabular-nums">{formatMoney(amount)}</span>
-            </button>
-          ))}
+              <PlusIcon />
+              <span className="sr-only">Adicionar compra</span>
+            </Button>
+          </span>
         </div>
       </CardContent>
 

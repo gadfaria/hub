@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- Card expenses: selecting a card in Contas › Cartões opens a table of its purchases in that month's statement, with date, category, installment and amount, plus a total per category. Purchases now have a category (Carro, Comida, Pet, Casa, Saúde, Lazer, Viagem, Compras, Outros); ones saved earlier show as "Outros".
 - Card purchases in Contas › Cartões: add a purchase to a card with description, total, date and installments. It falls in the right statement from the closing and due days (adjustable), each installment shows in its own month ("3/10"), and until the real amount is entered the statement shows at least what its purchases add up to.
 - Reminder details dialog: clicking a reminder in Lembretes, or on the home calendar and lists, shows its schedule, date, status, heads-up and notes, with Concluir and Editar. Editing stays one click away instead of being the first thing that opens.
 - Reminder colors: pick one of eight colors (or none) in the reminder form. The calendar shows the reminder in that color, as does the dot next to its title in the list and in the agenda.
@@ -63,6 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [0.2.0] - 2026-10-24
 
 ### Added
+- Card expenses: selecting a card in Contas › Cartões opens a table of its purchases in that month's statement, with date, category, installment and amount, plus a total per category. Purchases now have a category (Carro, Comida, Pet, Casa, Saúde, Lazer, Viagem, Compras, Outros); ones saved earlier show as "Outros".
 - **Vehicles** module: vehicle registry (brand, model, year, plate, color, renavam, chassis, notes) and a page per vehicle at `#/vehicles/<id>`.
 - Maintenance history per vehicle: date, odometer, type (service, part replacement, repair, other), description, workshop, labor cost, parts with quantity and unit price, and notes. Totals are computed automatically.
 - Standalone odometer readings. The current odometer is the highest value from services or readings.
@@ -83,6 +85,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [0.1.0] - 2026-10-24
 
 ### Added
+- Card expenses: selecting a card in Contas › Cartões opens a table of its purchases in that month's statement, with date, category, installment and amount, plus a total per category. Purchases now have a category (Carro, Comida, Pet, Casa, Saúde, Lazer, Viagem, Compras, Outros); ones saved earlier show as "Outros".
 - Personal vault single-page app with no backend (React, Vite, TypeScript, Tailwind CSS v4, shadcn/ui).
 - Google sign-in with Google Identity Services, `drive.file` scope and a reconnect flow when the 1-hour token expires.
 - Google Drive as the database: a root folder with one JSON file per module, found through `appProperties`.

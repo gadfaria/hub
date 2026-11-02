@@ -95,11 +95,27 @@ export interface BillPayment extends Syncable {
   attachments: Attachment[]
 }
 
+export const PURCHASE_CATEGORIES = {
+  car: 'Carro',
+  food: 'Comida',
+  pet: 'Pet',
+  home: 'Casa',
+  health: 'Saúde',
+  leisure: 'Lazer',
+  travel: 'Viagem',
+  shopping: 'Compras',
+  other: 'Outros',
+} as const
+
+export type PurchaseCategory = keyof typeof PURCHASE_CATEGORIES
+
 /** A purchase charged to a card, in one statement or split over several. */
 export interface CardPurchase extends Syncable {
   /** The card (a creditCard bill id) */
   cardId: string
   description: string
+  /** Missing on purchases saved before categories existed, which count as other */
+  category?: PurchaseCategory
   /** Total in cents */
   amount: number
   /** YYYY-MM-DD */

@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { currentMonth, daysUntil, formatDate, formatMonth, formatMoney, shiftMonth } from '@/lib/format'
 import { BillFormDialog } from './BillFormDialog'
 import { BillHistoryDialog } from './BillHistoryDialog'
+import { CardExpenses } from './CardExpenses'
 import { CardFormDialog } from './CardFormDialog'
 import { CardsView } from './CardsView'
 import { PaymentDialog } from './PaymentDialog'
@@ -64,14 +65,24 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const [confirm, setConfirm] = useState<Confirm | null>(null)
   const [purchaseDialog, setPurchaseDialog] = useState<{ card: Bill; purchase?: CardPurchase } | null>(null)
   const [deletingPurchase, setDeletingPurchase] = useState<CardPurchase | null>(null)
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
   const rows = bills.monthRows(month)
+  const selectedCard = view === 'cards' ? rows.find((row) => isCard(row.bill) && row.bill.id === selectedCardId) : undefined
   const isCurrent = month === currentMonth()
   const editBill = (bill: Bill) => (isCard(bill) ? setCardDialog({ card: bill }) : setBillDialog({ bill }))
 
   return (
     <>
-      {view === 'cards' ? (
+      {selectedCard ? (
+        <SiteHeader title={[{ label: 'Contas', href: '#/bills' }, { label: 'Cartões' }, { label: selectedCard.bill.name }]}>
+          <Button size="sm" onClick={() => setPurchaseDialog({ card: selectedCard.bill })}>
+            <PlusIcon />
+            <span className="hidden sm:inline">Nova compra</span>
+            <span className="sm:hidden">Nova</span>
+          </Button>
+        </SiteHeader>
+      ) : view === 'cards' ? (
         <SiteHeader title={[{ label: 'Contas', href: '#/bills' }, { label: 'Cartões' }]}>
           <Button size="sm" onClick={() => setCardDialog({})} disabled={bills.loading}>
             <PlusIcon />
@@ -106,7 +117,14 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
           )}
         </div>
 
-        {view === 'cards' ? (
+        {selectedCard ? (
+          <CardExpenses
+            row={selectedCard}
+            onBack={() => setSelectedCardId(null)}
+            onAdd={() => setPurchaseDialog({ card: selectedCard.bill })}
+            onEdit={(purchase) => setPurchaseDialog({ card: selectedCard.bill, purchase })}
+          />
+        ) : view === 'cards' ? (
           <CardsView
             loading={bills.loading || subs.loading}
             rows={rows.filter((row) => isCard(row.bill))}
@@ -118,7 +136,7 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
             onHistory={(row) => setHistoryBill(row.bill)}
             onEdit={(row) => editBill(row.bill)}
             onAddPurchase={(row) => setPurchaseDialog({ card: row.bill })}
-            onEditPurchase={(row, purchase) => setPurchaseDialog({ card: row.bill, purchase })}
+            onSelect={(row) => setSelectedCardId(row.bill.id)}
           />
         ) : (
           <>

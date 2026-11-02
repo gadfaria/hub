@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatMonth, formatMoney, formatMoneyInput, parseMoney, shiftMonth, today } from '@/lib/format'
-import { firstStatementMonth, installmentIn, type Bill, type CardPurchase } from './types'
+import { firstStatementMonth, installmentIn, PURCHASE_CATEGORIES, type Bill, type CardPurchase, type PurchaseCategory } from './types'
 import type { PurchaseInput } from './useBills'
 
 interface PurchaseFormDialogProps {
@@ -39,6 +39,7 @@ const MAX_INSTALLMENTS = 48
 
 function PurchaseForm({ card, purchase, onSubmit, onOpenChange, onDelete }: PurchaseFormDialogProps & { card: Bill }) {
   const [description, setDescription] = useState(purchase?.description ?? '')
+  const [category, setCategory] = useState<PurchaseCategory>(purchase?.category ?? 'other')
   const [amount, setAmount] = useState(purchase ? formatMoneyInput(purchase.amount) : '')
   const [date, setDate] = useState(purchase?.date ?? today())
   const [installments, setInstallments] = useState(String(purchase?.installments ?? 1))
@@ -58,7 +59,7 @@ function PurchaseForm({ card, purchase, onSubmit, onOpenChange, onDelete }: Purc
     event.preventDefault()
     if (!valid) return
     setPending(true)
-    const ok = await onSubmit({ cardId: card.id, description: description.trim(), amount: parsed!, date, installments: count, firstMonth })
+    const ok = await onSubmit({ cardId: card.id, description: description.trim(), category, amount: parsed!, date, installments: count, firstMonth })
     setPending(false)
     if (ok) onOpenChange(false)
   }
@@ -79,6 +80,20 @@ function PurchaseForm({ card, purchase, onSubmit, onOpenChange, onDelete }: Purc
             placeholder="Ex.: Mercado Livre, AliExpress"
             autoFocus
           />
+        </Field>
+        <Field label="Categoria" id="purchase-category" className="col-span-2">
+          <Select value={category} onValueChange={(v) => setCategory(v as PurchaseCategory)}>
+            <SelectTrigger id="purchase-category" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PURCHASE_CATEGORIES).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field label="Valor total" id="purchase-amount">
           <Input
