@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-01
+
 ### Added
 - Subscriptions charged to a card now count in its statements: each charge falls in the statement of its date, the estimate is at least what purchases and subscriptions add up to (the "Fatura média" is not added on top), and they show in the card's table.
 - Card expenses: selecting a card in Contas › Cartões opens a table of its purchases in that month's statement, with date, category, installment and amount, plus a total per category. Purchases now have a category (Carro, Comida, Pet, Casa, Saúde, Lazer, Viagem, Compras, Outros); ones saved earlier show as "Outros".
