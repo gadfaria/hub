@@ -1,5 +1,6 @@
 import type { Attachment, Syncable } from '@/domain/types'
-import { dayOfMonth, parseDate, shiftMonth } from '@/lib/format'
+import { addMonths, dayOfMonth, parseDate, shiftMonth } from '@/lib/format'
+import { CYCLES, type Subscription } from '../subscriptions/types'
 
 export const BILL_CATEGORIES = {
   rent: 'Aluguel',
@@ -173,6 +174,23 @@ export function installmentIn(
   if (index < 0 || index >= purchase.installments) return null
   const base = Math.floor(purchase.amount / purchase.installments)
   return { number: index + 1, amount: index === 0 ? purchase.amount - base * (purchase.installments - 1) : base }
+}
+
+/** A subscription's charges that fall in a card's statement, as YYYY-MM-DD. Stops at its cancellation. */
+export function chargesIn(
+  subscription: Pick<Subscription, 'startDate' | 'cycle' | 'cancelledAt'>,
+  card: Pick<Bill, 'dueDay' | 'card'>,
+  month: string,
+): string[] {
+  const step = CYCLES[subscription.cycle].months
+  // A charge reaches a statement at most two months later, so start a little before that.
+  const start = Math.max(0, Math.floor((monthsBetween(subscription.startDate.slice(0, 7), month) - 3) / step))
+  const charges: string[] = []
+  for (let cycle = start; ; cycle += 1) {
+    const date = addMonths(subscription.startDate, cycle * step)
+    if (date.slice(0, 7) > month || (subscription.cancelledAt && date > subscription.cancelledAt)) return charges
+    if (firstStatementMonth(card, date) === month) charges.push(date)
+  }
 }
 
 /** "vence dia 10"; "trimestral · dia 10 (jan, abr, jul, out)"; "anual · 10 de março"; "avulsa · 10/03/2027" */

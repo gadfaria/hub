@@ -51,6 +51,7 @@ export function useSubscriptions() {
     }
 
     return {
+      all,
       active,
       cancelled,
       monthlyTotal: active.reduce((sum, r) => sum + r.monthly, 0),

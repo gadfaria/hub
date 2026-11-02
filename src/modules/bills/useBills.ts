@@ -4,7 +4,8 @@ import type { Attachment, Syncable } from '@/domain/types'
 import { dayOfMonth, shiftMonth, today } from '@/lib/format'
 import { useAttachments } from '@/storage/useAttachments'
 import { useCollection } from '@/storage/useCollection'
-import { billFrequency, FREQUENCIES, installmentIn, isDueIn, type Bill, type BillPayment, type BillsData, type BillStatus, type CardPurchase } from './types'
+import type { Subscription } from '../subscriptions/types'
+import { billFrequency, chargesIn, FREQUENCIES, installmentIn, isDueIn, type Bill, type BillPayment, type BillsData, type BillStatus, type CardPurchase } from './types'
 
 const EMPTY: BillsData = { bills: [], payments: [], purchases: [] }
 
@@ -21,17 +22,26 @@ export interface PurchaseRow {
   amount: number
 }
 
+/** A subscription charged in one statement. */
+export interface SubscriptionCharge {
+  subscription: Subscription
+  /** YYYY-MM-DD */
+  date: string
+}
+
 /** A bill as it stands in one month. */
 export interface MonthRow {
   bill: Bill
   payment: BillPayment | undefined
   dueDate: string
-  /** The real amount when entered, otherwise the estimate, or the card's purchases if they add up to more */
+  /** The real amount when entered, otherwise the estimate, or the card's purchases and subscriptions if they add up to more */
   amount: number
   estimated: boolean
   status: BillStatus
   /** On cards, the purchases in this month's statement */
   purchases: PurchaseRow[]
+  /** On cards, the subscriptions charged in this month's statement */
+  charges: SubscriptionCharge[]
 }
 
 export interface HistoryPoint {
@@ -80,9 +90,9 @@ export function useBills() {
     [live],
   )
 
-  /** Every bill that applies to `month`, with its amount and status. */
+  /** Every bill that applies to `month`, with its amount and status. Cards count the `subscriptions` charged to them. */
   const monthRows = useCallback(
-    (month: string): MonthRow[] => {
+    (month: string, subscriptions: Subscription[] = []): MonthRow[] => {
       const now = today()
       return live.bills
         .filter((bill) => isDueIn(bill, month))
@@ -91,14 +101,19 @@ export function useBills() {
           const dueDate = payment?.dueDate || dayOfMonth(month, bill.dueDay)
           const status: BillStatus = payment?.paidAt ? 'paid' : dueDate < now ? 'overdue' : 'pending'
           const purchases = purchasesIn(bill.id, month)
+          const charges = subscriptions
+            .filter((subscription) => subscription.cardId === bill.id)
+            .flatMap((subscription) => chargesIn(subscription, bill, month).map((date) => ({ subscription, date })))
+          const charged = [...purchases.map((p) => p.amount), ...charges.map((c) => c.subscription.amount)].reduce((sum, amount) => sum + amount, 0)
           return {
             bill,
             payment,
             dueDate,
-            amount: payment ? payment.amount : Math.max(bill.estimate, purchases.reduce((sum, p) => sum + p.amount, 0)),
+            amount: payment ? payment.amount : Math.max(bill.estimate, charged),
             estimated: !payment,
             status,
             purchases,
+            charges,
           }
         })
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.bill.name.localeCompare(b.bill.name))

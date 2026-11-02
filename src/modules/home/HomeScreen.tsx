@@ -49,13 +49,13 @@ export function HomeScreen() {
   const reminderDialogs = useReminderDialogs(reminders)
 
   const month = currentMonth()
-  const billRows = bills.monthRows(month)
+  const billRows = bills.monthRows(month, subs.all)
 
   const events = loading
     ? []
     : collectEvents({
         // Next month's bills too, so early-month due dates show up in the agenda.
-        billRows: [...billRows, ...bills.monthRows(shiftMonth(month, 1))],
+        billRows: [...billRows, ...bills.monthRows(shiftMonth(month, 1), subs.all)],
         subscriptions: subs.active,
         documents: docs.rows,
         health: health.people.map((person) => ({ person, upcoming: health.forPerson(person).upcoming })),
@@ -79,7 +79,7 @@ export function HomeScreen() {
     ? []
     : collectCalendar(gridFrom, gridTo, {
         reminders: reminders.inRange(gridFrom, gridTo),
-        billRows: monthsBetween(gridFrom, gridTo).flatMap((m) => bills.monthRows(m)),
+        billRows: monthsBetween(gridFrom, gridTo).flatMap((m) => bills.monthRows(m, subs.all)),
         subscriptions: subs.active.map((r) => r.subscription),
         documents: docs.rows,
         health: health.people.map((person) => ({ person, upcoming: health.forPerson(person).upcoming })),

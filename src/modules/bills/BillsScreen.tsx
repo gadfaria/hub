@@ -67,7 +67,7 @@ export function BillsScreen({ nav, view = 'bills' }: { nav?: React.ReactNode; vi
   const [deletingPurchase, setDeletingPurchase] = useState<CardPurchase | null>(null)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
-  const rows = bills.monthRows(month)
+  const rows = bills.monthRows(month, subs.all)
   const selectedCard = view === 'cards' ? rows.find((row) => isCard(row.bill) && row.bill.id === selectedCardId) : undefined
   const isCurrent = month === currentMonth()
   const editBill = (bill: Bill) => (isCard(bill) ? setCardDialog({ card: bill }) : setBillDialog({ bill }))
