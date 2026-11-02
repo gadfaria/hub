@@ -2,8 +2,6 @@
 
 A personal vault organized into modules (Reminders, Finance, Bills, Subscriptions, Vehicles, Documents, Health, …), with all data stored as JSON in a folder of your own Google Drive. There is no backend: the app runs in the browser and talks directly to the Drive API.
 
-Live at <https://vault.gadfaria.com>.
-
 ## Stack
 
 - React + Vite + TypeScript
@@ -121,7 +119,7 @@ On the phone, open the site and use **Compartilhar → Adicionar à Tela de Iní
 
 - **Offline app shell:** `public/sw.js` caches the page, bundles, fonts and icons, so the app opens without internet (pages network-first, hashed assets cache-first, old bundles pruned). Drive data needs a connection, and a banner says so when offline.
 - **Offline notes (read-only):** notes are the one exception. Each time the Notes screen loads from Drive, the tree and every note changed since the last visit are copied to the device's IndexedDB (`src/lib/offline-store.ts`); images are copied once opened. Offline, the app opens even with an expired session and shows notes from that copy, without editing. The copy is tagged with the account and erased on sign-out.
-- **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://vault.gadfaria.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
+- **Sign-in in the installed app** uses a full-page redirect to Google instead of the popup (unreliable in standalone mode, especially on iOS). The OAuth client needs `<origin>/` as an **Authorized redirect URI** (e.g. `https://your-domain.com/` and `http://localhost:5180/`). The `state` parameter is checked on return and the token is removed from the address bar.
 - The service worker only registers in production builds; test it with `npm run build && npm run preview`.
 
 ## Deploy
