@@ -9,7 +9,7 @@ const EMPTY: FinanceData = { accounts: [], balances: [], investments: [] }
 
 export type InvestmentInput = Omit<Investment, keyof Syncable | 'redeemedAt' | 'redeemedAmount'>
 
-export interface AccountSummary {
+interface AccountSummary {
   account: Account
   latest: BalanceEntry | undefined
 }

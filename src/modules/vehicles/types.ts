@@ -33,7 +33,7 @@ export interface Vehicle extends Syncable {
   notes: string
 }
 
-export interface Part {
+interface Part {
   name: string
   quantity: number
   /** Price per unit, in cents */
@@ -96,7 +96,7 @@ export type VehiclesData = {
 }
 
 /** Renewal reminders start two months ahead. */
-export const POLICY_RENEWAL_DAYS = 60
+const POLICY_RENEWAL_DAYS = 60
 
 export function policyStatus(policy: Pick<InsurancePolicy, 'endDate'>): ExpiryStatus {
   return getExpiryStatus(policy.endDate, POLICY_RENEWAL_DAYS)

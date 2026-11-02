@@ -58,7 +58,7 @@ export interface Bill extends Syncable {
 }
 
 /** A credit card. Only the last digits: the full number, CVV or password never go in the vault. */
-export interface CardDetails {
+interface CardDetails {
   bank: string
   /** Last 4 digits, or empty */
   lastDigits: string

@@ -11,7 +11,7 @@ import { CYCLES, type Subscription } from '@/modules/subscriptions/types'
 import { vehicleLabel } from '@/modules/vehicles/types'
 import type { VehicleSummary } from '@/modules/vehicles/useVehicles'
 
-export type CalendarKind = 'reminder' | 'bill' | 'subscription' | 'other'
+type CalendarKind = 'reminder' | 'bill' | 'subscription' | 'other'
 
 /** Something that falls on a day of the calendar, from any module. */
 export interface CalendarItem {

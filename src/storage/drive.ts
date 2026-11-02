@@ -1,7 +1,7 @@
 const API = 'https://www.googleapis.com/drive/v3'
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3'
 
-export const FOLDER_MIME = 'application/vnd.google-apps.folder'
+const FOLDER_MIME = 'application/vnd.google-apps.folder'
 
 export class DriveError extends Error {
   readonly status: number
